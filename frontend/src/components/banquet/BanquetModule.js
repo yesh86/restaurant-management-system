@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Calendar, Plus, Users, DollarSign, BarChart3 } from 'lucide-react';
+import { Calendar, Plus, Users, DollarSign, BarChart3, FileText } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import BookingForm from './BookingForm';
 import CalendarView from './CalendarView';
+import BanquetReports from './BanquetReports';
 
 const BanquetModule = () => {
   const { bookings, loading, error } = useApp();
@@ -14,7 +15,8 @@ const BanquetModule = () => {
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'bookings', label: 'All Bookings', icon: Users }
+    { id: 'bookings', label: 'All Bookings', icon: Users },
+    { id: 'reports', label: 'Reports', icon: FileText }
   ];
 
   const handleCreateBooking = () => {
@@ -43,6 +45,8 @@ const BanquetModule = () => {
         return <CalendarView bookings={bookings} onCreateBooking={handleCreateBooking} />;
       case 'bookings':
         return renderBookingsList();
+      case 'reports':
+        return <BanquetReports />;
       default:
         return renderDashboard();
     }
@@ -53,7 +57,7 @@ const BanquetModule = () => {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <button
             onClick={handleCreateBooking}
             className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
@@ -75,11 +79,18 @@ const BanquetModule = () => {
             <Users size={20} />
             All Bookings
           </button>
+          <button
+            onClick={() => setActiveTab('reports')}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
+          >
+            <FileText size={20} />
+            View Reports
+          </button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <Calendar className="h-8 w-8 text-blue-600" />
@@ -104,7 +115,21 @@ const BanquetModule = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <DollarSign className="h-8 w-8 text-yellow-600" />
+            <Users className="h-8 w-8 text-red-600" />
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Cancelled</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {bookings.filter(b => b.status === 'Cancelled').length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+              <span className="text-yellow-600 font-bold text-lg">₹</span>
+            </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900">

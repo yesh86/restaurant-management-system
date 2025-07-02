@@ -62,6 +62,12 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0
   },
+  discount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Discount amount to be deducted from total'
+  },
 
   // Advance Payment 1
   advance1_amount: {
@@ -136,7 +142,7 @@ const Booking = sequelize.define('Booking', {
 
   status: {
     type: DataTypes.STRING(20),
-    defaultValue: 'Confirmed'
+    defaultValue: 'Pending Payment'
   },
   notes: {
     type: DataTypes.TEXT,
@@ -152,6 +158,21 @@ const Booking = sequelize.define('Booking', {
       const advance3 = parseFloat(booking.advance3_amount) || 0;
       const final = parseFloat(booking.final_amount) || 0;
       booking.paid_amount = advance1 + advance2 + advance3 + final;
+
+      // Auto-update status based on payment completion
+      const total = parseFloat(booking.total_amount) || 0;
+      const discount = parseFloat(booking.discount) || 0;
+      const adjustedTotal = total - discount;
+
+      if (booking.paid_amount >= adjustedTotal && adjustedTotal > 0) {
+        if (booking.status === 'Pending Payment' || booking.status === 'Partially Paid') {
+          booking.status = 'Fully Paid';
+        }
+      } else if (booking.paid_amount > 0) {
+        if (booking.status === 'Pending Payment') {
+          booking.status = 'Partially Paid';
+        }
+      }
     }
   }
 });

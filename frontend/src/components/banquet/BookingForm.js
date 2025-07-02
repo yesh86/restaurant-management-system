@@ -17,6 +17,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     menu_type: 'Veg Standard',
     menu_price: '',
     total_amount: '',
+    discount: '',
 
     // Advance Payment 1
     advance1_amount: '',
@@ -38,7 +39,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     final_date: '',
     final_method: 'Cash',
 
-    status: 'Confirmed',
+    status: 'Pending Payment',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -64,6 +65,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         menu_type: booking.menu_type || 'Veg Standard',
         menu_price: booking.menu_price || '',
         total_amount: booking.total_amount || '',
+        discount: booking.discount || '',
 
         advance1_amount: booking.advance1_amount || '',
         advance1_date: booking.advance1_date || '',
@@ -81,34 +83,31 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         final_date: booking.final_date || '',
         final_method: booking.final_method || 'Cash',
 
-        status: booking.status || 'Confirmed',
+        status: booking.status || 'Pending Payment',
         notes: booking.notes || ''
       });
     }
   }, [booking]);
 
-  const calculateTotalPaid = () => {
+  // Simple change handler - no calculations
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Calculate values for display only (no state updates)
+  const calculateDisplayValues = () => {
+    const total = parseFloat(formData.total_amount) || 0;
+    const discount = parseFloat(formData.discount) || 0;
     const advance1 = parseFloat(formData.advance1_amount) || 0;
     const advance2 = parseFloat(formData.advance2_amount) || 0;
     const advance3 = parseFloat(formData.advance3_amount) || 0;
     const final = parseFloat(formData.final_amount) || 0;
-    return advance1 + advance2 + advance3 + final;
-  };
 
-  const calculateRemaining = () => {
-    const total = parseFloat(formData.total_amount) || 0;
-    const paid = calculateTotalPaid();
-    return total - paid;
-  };
+    const totalPaid = advance1 + advance2 + advance3 + final;
+    const remaining = Math.max(0, total - discount - totalPaid);
 
-  const getPaymentStatus = () => {
-    const total = parseFloat(formData.total_amount) || 0;
-    const paid = calculateTotalPaid();
-
-    if (total === 0) return 'Not Set';
-    if (paid === 0) return 'Unpaid';
-    if (paid >= total) return 'Fully Paid';
-    return 'Partially Paid';
+    return { totalPaid, remaining };
   };
 
   const handleSubmit = async (e) => {
@@ -121,6 +120,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         pax: parseInt(formData.pax),
         menu_price: parseFloat(formData.menu_price) || 0,
         total_amount: parseFloat(formData.total_amount) || 0,
+        discount: parseFloat(formData.discount) || 0,
 
         advance1_amount: parseFloat(formData.advance1_amount) || 0,
         advance2_amount: parseFloat(formData.advance2_amount) || 0,
@@ -145,62 +145,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const PaymentRow = ({ title, amountField, dateField, methodField, bgColor = "bg-gray-50" }) => (
-    <div className={`${bgColor} p-4 rounded-lg border`}>
-      <h4 className="text-md font-medium text-gray-700 mb-3">{title}</h4>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
-          <input
-            type="number"
-            name={amountField}
-            value={formData[amountField]}
-            onChange={handleChange}
-            placeholder={`Enter ${title.toLowerCase()} amount`}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            min="0"
-            step="0.01"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
-          <input
-            type="date"
-            name={dateField}
-            value={formData[dateField]}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-        <div className="flex space-x-4">
-          {paymentMethods.map(method => (
-            <label key={method} className="flex items-center">
-              <input
-                type="radio"
-                name={methodField}
-                value={method}
-                checked={formData[methodField] === method}
-                onChange={handleChange}
-                className="mr-2"
-              />
-              <span className="text-sm text-gray-700">{method}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  const displayValues = calculateDisplayValues();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -346,7 +291,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Menu Type</label>
                 <select
@@ -374,6 +319,19 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount (₹)</label>
+                <input
+                  type="number"
+                  name="total_amount"
+                  value={formData.total_amount}
+                  onChange={handleChange}
+                  placeholder="Enter total amount"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                 <select
                   name="status"
@@ -381,8 +339,10 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                   onChange={handleChange}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
+                  <option value="Pending Payment">Pending Payment</option>
+                  <option value="Partially Paid">Partially Paid</option>
+                  <option value="Fully Paid">Fully Paid</option>
                   <option value="Confirmed">Confirmed</option>
-                  <option value="Pending">Pending</option>
                   <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
@@ -396,78 +356,252 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               Payment Details
             </h4>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount (₹) *</label>
-              <input
-                type="number"
-                name="total_amount"
-                value={formData.total_amount}
-                onChange={handleChange}
-                placeholder="Enter total booking amount"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                min="0"
-                step="0.01"
-                required
-              />
-            </div>
-
             <div className="space-y-4">
-              <PaymentRow
-                title="Advance Payment 1"
-                amountField="advance1_amount"
-                dateField="advance1_date"
-                methodField="advance1_method"
-                bgColor="bg-blue-50"
-              />
+              {/* Advance Payment 1 */}
+              <div className="bg-blue-50 p-4 rounded-lg border">
+                <h4 className="text-md font-medium text-gray-700 mb-3">Advance Payment 1</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                    <input
+                      type="number"
+                      name="advance1_amount"
+                      value={formData.advance1_amount}
+                      onChange={handleChange}
+                      placeholder="Enter advance payment 1 amount"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                    <input
+                      type="date"
+                      name="advance1_date"
+                      value={formData.advance1_date}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                  <div className="flex space-x-4">
+                    {paymentMethods.map(method => (
+                      <label key={method} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="advance1_method"
+                          value={method}
+                          checked={formData.advance1_method === method}
+                          onChange={handleChange}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-700">{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-              <PaymentRow
-                title="Advance Payment 2"
-                amountField="advance2_amount"
-                dateField="advance2_date"
-                methodField="advance2_method"
-                bgColor="bg-yellow-50"
-              />
+              {/* Advance Payment 2 */}
+              <div className="bg-yellow-50 p-4 rounded-lg border">
+                <h4 className="text-md font-medium text-gray-700 mb-3">Advance Payment 2</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                    <input
+                      type="number"
+                      name="advance2_amount"
+                      value={formData.advance2_amount}
+                      onChange={handleChange}
+                      placeholder="Enter advance payment 2 amount"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                    <input
+                      type="date"
+                      name="advance2_date"
+                      value={formData.advance2_date}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                  <div className="flex space-x-4">
+                    {paymentMethods.map(method => (
+                      <label key={method} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="advance2_method"
+                          value={method}
+                          checked={formData.advance2_method === method}
+                          onChange={handleChange}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-700">{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-              <PaymentRow
-                title="Advance Payment 3"
-                amountField="advance3_amount"
-                dateField="advance3_date"
-                methodField="advance3_method"
-                bgColor="bg-purple-50"
-              />
+              {/* Advance Payment 3 */}
+              <div className="bg-purple-50 p-4 rounded-lg border">
+                <h4 className="text-md font-medium text-gray-700 mb-3">Advance Payment 3</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                    <input
+                      type="number"
+                      name="advance3_amount"
+                      value={formData.advance3_amount}
+                      onChange={handleChange}
+                      placeholder="Enter advance payment 3 amount"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                    <input
+                      type="date"
+                      name="advance3_date"
+                      value={formData.advance3_date}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                  <div className="flex space-x-4">
+                    {paymentMethods.map(method => (
+                      <label key={method} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="advance3_method"
+                          value={method}
+                          checked={formData.advance3_method === method}
+                          onChange={handleChange}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-700">{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-              <PaymentRow
-                title="Final Payment"
-                amountField="final_amount"
-                dateField="final_date"
-                methodField="final_method"
-                bgColor="bg-green-100"
-              />
+              {/* Discount Field */}
+              <div className="bg-orange-50 p-4 rounded-lg border">
+                <h4 className="text-md font-medium text-gray-700 mb-3">Discount</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Discount Amount (₹)</label>
+                    <input
+                      type="number"
+                      name="discount"
+                      value={formData.discount}
+                      onChange={handleChange}
+                      placeholder="Enter discount amount"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <p className="text-sm text-gray-600">
+                      Discount amount (manually enter final payment amount below)
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Final Payment */}
+              <div className="bg-green-100 p-4 rounded-lg border">
+                <h4 className="text-md font-medium text-gray-700 mb-3">Final Payment</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+                    <input
+                      type="number"
+                      name="final_amount"
+                      value={formData.final_amount}
+                      onChange={handleChange}
+                      placeholder="Enter final payment amount"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Date</label>
+                    <input
+                      type="date"
+                      name="final_date"
+                      value={formData.final_date}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                  <div className="flex space-x-4">
+                    {paymentMethods.map(method => (
+                      <label key={method} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="final_method"
+                          value={method}
+                          checked={formData.final_method === method}
+                          onChange={handleChange}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-gray-700">{method}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Payment Summary */}
             <div className="mt-6 bg-white p-4 rounded-lg border-2 border-gray-200">
               <h5 className="text-md font-medium text-gray-800 mb-3">Payment Summary</h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
                 <div>
                   <p className="text-sm text-gray-600">Total Amount:</p>
                   <p className="text-lg font-bold text-gray-900">₹{(parseFloat(formData.total_amount) || 0).toLocaleString()}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-gray-600">Discount:</p>
+                  <p className="text-lg font-bold text-orange-600">₹{(parseFloat(formData.discount) || 0).toLocaleString()}</p>
+                </div>
+                <div>
                   <p className="text-sm text-gray-600">Total Paid:</p>
-                  <p className="text-lg font-bold text-green-600">₹{calculateTotalPaid().toLocaleString()}</p>
+                  <p className="text-lg font-bold text-green-600">₹{displayValues.totalPaid.toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Remaining:</p>
-                  <p className="text-lg font-bold text-red-600">₹{calculateRemaining().toLocaleString()}</p>
+                  <p className="text-lg font-bold text-red-600">₹{displayValues.remaining.toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Status:</p>
                   <p className={`text-sm font-bold ${
-                    getPaymentStatus() === 'Fully Paid' ? 'text-green-600' :
-                    getPaymentStatus() === 'Partially Paid' ? 'text-yellow-600' : 'text-red-600'
+                    formData.status === 'Fully Paid' ? 'text-green-600' :
+                    formData.status === 'Partially Paid' ? 'text-yellow-600' : 'text-red-600'
                   }`}>
-                    {getPaymentStatus()}
+                    {formData.status}
                   </p>
                 </div>
               </div>
