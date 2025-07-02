@@ -39,7 +39,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     final_date: '',
     final_method: 'Cash',
 
-    status: 'Pending Payment',
+    status: 'Not Paid',
     notes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -83,19 +83,60 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         final_date: booking.final_date || '',
         final_method: booking.final_method || 'Cash',
 
-        status: booking.status || 'Pending Payment',
+        status: booking.status || 'Not Paid',
         notes: booking.notes || ''
       });
     }
   }, [booking]);
 
-  // Simple change handler - no calculations
+  // Simple change handler with specific auto-calculation for total amount and status
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+
+      // Auto-calculate total amount when PAX or price per person changes
+      if (name === 'pax' || name === 'menu_price') {
+        const pax = parseInt(name === 'pax' ? value : updated.pax) || 0;
+        const price = parseFloat(name === 'menu_price' ? value : updated.menu_price) || 0;
+        if (pax > 0 && price > 0) {
+          updated.total_amount = (pax * price).toString();
+        }
+      }
+
+      // Auto-update status when payment amounts change
+      if (name === 'total_amount' || name === 'discount' ||
+          name === 'advance1_amount' || name === 'advance2_amount' ||
+          name === 'advance3_amount' || name === 'final_amount') {
+
+        const total = parseFloat(name === 'total_amount' ? value : updated.total_amount) || 0;
+        const discount = parseFloat(name === 'discount' ? value : updated.discount) || 0;
+        const advance1 = parseFloat(name === 'advance1_amount' ? value : updated.advance1_amount) || 0;
+        const advance2 = parseFloat(name === 'advance2_amount' ? value : updated.advance2_amount) || 0;
+        const advance3 = parseFloat(name === 'advance3_amount' ? value : updated.advance3_amount) || 0;
+        const final = parseFloat(name === 'final_amount' ? value : updated.final_amount) || 0;
+
+        const totalPaid = advance1 + advance2 + advance3 + final;
+        const adjustedTotal = total - discount;
+        const remaining = Math.max(0, adjustedTotal - totalPaid);
+
+        // Auto-update status
+        if (adjustedTotal > 0) {
+          if (remaining === 0) {
+            updated.status = 'Fully Paid';
+          } else if (remaining > 0 && remaining < adjustedTotal) {
+            updated.status = 'Partially Paid';
+          } else if (remaining === adjustedTotal) {
+            updated.status = 'Not Paid';
+          }
+        }
+      }
+
+      return updated;
+    });
   };
 
-  // Calculate values for display only (no state updates)
+  // Calculate values for display and auto-update status
   const calculateDisplayValues = () => {
     const total = parseFloat(formData.total_amount) || 0;
     const discount = parseFloat(formData.discount) || 0;
@@ -105,9 +146,22 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     const final = parseFloat(formData.final_amount) || 0;
 
     const totalPaid = advance1 + advance2 + advance3 + final;
-    const remaining = Math.max(0, total - discount - totalPaid);
+    const adjustedTotal = total - discount;
+    const remaining = Math.max(0, adjustedTotal - totalPaid);
 
-    return { totalPaid, remaining };
+    // Auto-calculate status based on remaining amount
+    let autoStatus = 'Not Paid';
+    if (adjustedTotal > 0) {
+      if (remaining === 0) {
+        autoStatus = 'Fully Paid';
+      } else if (remaining > 0 && remaining < adjustedTotal) {
+        autoStatus = 'Partially Paid';
+      } else if (remaining === adjustedTotal) {
+        autoStatus = 'Not Paid';
+      }
+    }
+
+    return { totalPaid, remaining, autoStatus };
   };
 
   const handleSubmit = async (e) => {
@@ -325,10 +379,11 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                   name="total_amount"
                   value={formData.total_amount}
                   onChange={handleChange}
-                  placeholder="Enter total amount"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Auto-calculated: PAX × Price"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
                   min="0"
                   step="0.01"
+                  readOnly
                 />
               </div>
               <div>
@@ -337,14 +392,16 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                  disabled
                 >
-                  <option value="Pending Payment">Pending Payment</option>
+                  <option value="Not Paid">Not Paid</option>
                   <option value="Partially Paid">Partially Paid</option>
                   <option value="Fully Paid">Fully Paid</option>
                   <option value="Confirmed">Confirmed</option>
                   <option value="Cancelled">Cancelled</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">Auto-calculated based on payments</p>
               </div>
             </div>
           </div>
