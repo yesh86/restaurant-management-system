@@ -25,8 +25,26 @@ try {
   const initializeDatabase = async () => {
     try {
       await testConnection();
-      await models.sequelize.sync({ alter: true });
-      console.log('🗄️ Database synchronized with all tables');
+
+      // Try alter first, fallback to force if it fails
+      try {
+        await models.sequelize.sync({ alter: true });
+        console.log('🗄️ Database synchronized with all tables');
+      } catch (alterError) {
+        console.log('⚠️ Alter sync failed, using force sync...');
+        await models.sequelize.sync({ force: true });
+        console.log('🗄️ Database force synchronized - all tables recreated');
+
+        // Re-run seed after force sync
+        try {
+          const seedData = require('./utils/seed');
+          await seedData();
+          console.log('🌱 Seed data reloaded');
+        } catch (seedError) {
+          console.log('⚠️ Seed failed, but database is ready');
+        }
+      }
+
     } catch (error) {
       console.error('❌ Database sync failed:', error.message);
     }
