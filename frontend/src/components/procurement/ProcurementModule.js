@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
-import { Package, Users, Truck } from 'lucide-react';
-import CategoryManager from './CategoryManager';
-import ItemManager from './ItemManager';
+import { Package, Building2, ArrowUpDown, Plus } from 'lucide-react';
+import ItemsManager from './ItemsManager';
+import DepartmentsManager from './DepartmentsManager';
+import DistributionsManager from './DistributionsManager';
 
 const ProcurementModule = () => {
-  const [activeTab, setActiveTab] = useState('categories');
+  const [activeTab, setActiveTab] = useState('items');
 
   const tabs = [
-    { id: 'categories', label: 'Categories', icon: Package },
-    { id: 'items', label: 'Items', icon: Truck },
+    { id: 'items', label: 'Items', icon: Package },
+    { id: 'departments', label: 'Departments', icon: Building2 },
+    { id: 'distributions', label: 'Distributions', icon: ArrowUpDown }
   ];
 
   const renderActiveTab = () => {
     switch (activeTab) {
-      case 'categories':
-        return <CategoryManager />;
       case 'items':
-        return <ItemManager />;
+        return <ItemsManager />;
+      case 'departments':
+        return <DepartmentsManager />;
+      case 'distributions':
+        return <DistributionsManager />;
       default:
-        return <CategoryManager />;
+        return <ItemsManager />;
     }
   };
 
@@ -28,7 +32,7 @@ const ProcurementModule = () => {
         <h2 className="text-2xl font-bold text-gray-900">Procurement Management</h2>
       </div>
 
-      {/* Sub Navigation */}
+      {/* Tab Navigation */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           {tabs.map(tab => {
