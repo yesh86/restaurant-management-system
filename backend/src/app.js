@@ -9,6 +9,7 @@ console.log('Starting minimal app...');
 // Basic middleware with CORS for your frontend
 app.use(cors({
   origin: [
+    'https://restaurant-management-system-i9un-kiwdzpdbi-yesh86s-projects.vercel.app',
     'https://restaurant-management-system-i9un-5xsqhcdoi-yesh86s-projects.vercel.app',
     'https://restaurant-management-system-i9un-2fh4frqrs-yesh86s-projects.vercel.app',
     'http://localhost:3000',
@@ -77,6 +78,15 @@ app.get("/api/items", (req, res) => {
 
 app.get("/api/cash", (req, res) => {
   res.json({ data: [], count: 0 });
+});
+
+app.get("/api/cash/summary", (req, res) => {
+  res.json({
+    totalIncome: 0,
+    totalExpense: 0,
+    balance: 0,
+    transactions: 0
+  });
 });
 
 // 404 handler
