@@ -1,11 +1,14 @@
 const { Sequelize } = require('sequelize');
 
-// Simple in-memory SQLite for Vercel
+console.log('Loading database config...');
+
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: ':memory:',
   logging: false
 });
+
+console.log('Sequelize configured for in-memory SQLite');
 
 const testConnection = async () => {
   try {
