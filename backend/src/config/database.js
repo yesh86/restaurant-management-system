@@ -1,14 +1,24 @@
 const { Sequelize } = require('sequelize');
 
 console.log('Loading database config...');
+console.log('Environment variables check:');
+console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
+console.log('POSTGRES_URL exists:', !!process.env.POSTGRES_URL);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
 let sequelize;
 
-if (process.env.POSTGRES_URL) {
-  // Use Vercel Postgres
-  console.log('Using Vercel Postgres database');
-  sequelize = new Sequelize(process.env.POSTGRES_URL, {
-    logging: false,
+// Check multiple possible environment variable names
+const databaseUrl = process.env.DATABASE_URL ||
+                   process.env.POSTGRES_URL ||
+                   process.env.POSTGRES_PRISMA_URL ||
+                   process.env.POSTGRES_URL_NON_POOLING;
+
+if (databaseUrl) {
+  console.log('Using database URL (first 20 chars):', databaseUrl.substring(0, 20) + '...');
+
+  sequelize = new Sequelize(databaseUrl, {
+    logging: console.log, // Enable logging to see what's happening
     dialectOptions: {
       ssl: {
         require: true,
@@ -22,41 +32,33 @@ if (process.env.POSTGRES_URL) {
       idle: 10000
     }
   });
-} else if (process.env.DATABASE_URL) {
-  // Use any other database URL
-  console.log('Using DATABASE_URL');
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
-    logging: false,
-    dialectOptions: {
-      ssl: process.env.NODE_ENV === 'production' ? {
-        require: true,
-        rejectUnauthorized: false
-      } : false
-    }
-  });
 } else {
-  // Fallback - this shouldn't happen in production
-  console.log('No database URL found, this will likely fail');
-  sequelize = new Sequelize({
-    dialect: 'postgres',
-    host: 'localhost',
-    port: 5432,
-    username: 'postgres',
-    password: 'password',
-    database: 'test',
+  console.log('❌ No database URL found in environment variables');
+  console.log('Available env vars:', Object.keys(process.env).filter(key =>
+    key.includes('DATABASE') || key.includes('POSTGRES')
+  ));
+
+  // Create a dummy sequelize to prevent crashes
+  sequelize = new Sequelize('postgres://user:pass@localhost:5432/dummy', {
     logging: false
   });
 }
 
-console.log('Database configured successfully');
+console.log('Database configured');
 
 const testConnection = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅ Database connection established');
+    console.log('✅ Database connection established successfully');
     return true;
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
+    console.error('Connection details:', {
+      host: sequelize.config.host,
+      port: sequelize.config.port,
+      database: sequelize.config.database,
+      username: sequelize.config.username
+    });
     throw error;
   }
 };
