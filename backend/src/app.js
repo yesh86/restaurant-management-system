@@ -193,4 +193,4 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
 }
 
 // Export the app for Vercel
-module.exports = app;
+module.exports = app;"// Force fresh deployment $(date)" 
