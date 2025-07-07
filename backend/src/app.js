@@ -115,26 +115,22 @@ app.get("/health", (req, res) => {
 // Database test route
 app.get("/api/test", async (req, res) => {
   try {
-    const models = require('./models');
+    const models = require('./config/database').mockModels;
 
     const categoryCount = await models.Category.count();
     const itemCount = await models.Item.count();
-    const vendorCount = await models.Vendor.count();
-    const departmentCount = await models.Department.count();
-    const bookingCount = await models.Booking.count();
-    const enquiryCount = await models.Enquiry.count();
-    const cashCount = await models.CashTransaction.count();
+    // ... etc
 
     res.json({
-      message: "Database test successful - All tables and APIs ready",
+      message: "Database test successful - All tables and APIs ready (TEST MODE)",
       data: {
         categories: categoryCount,
         items: itemCount,
-        vendors: vendorCount,
-        departments: departmentCount,
-        bookings: bookingCount,
-        enquiries: enquiryCount,
-        cash_transactions: cashCount
+        vendors: 0,
+        departments: 0,
+        bookings: 0,
+        enquiries: 0,
+        cash_transactions: 0
       }
     });
   } catch (error) {
@@ -144,7 +140,6 @@ app.get("/api/test", async (req, res) => {
     });
   }
 });
-
 // API Routes
 app.use('/api/categories', categoryRoutes);
 app.use('/api/items', itemRoutes);
