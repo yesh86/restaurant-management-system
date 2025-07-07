@@ -6,8 +6,14 @@ const PORT = process.env.PORT || 5000;
 
 console.log('Starting minimal app...');
 
-// Basic middleware
-app.use(cors());
+// Basic middleware with CORS for your frontend
+app.use(cors({
+  origin: [
+    'https://restaurant-management-system-i9un-2fh4frqrs-yesh86s-projects.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ]
+}));
 app.use(express.json());
 
 // Test route
@@ -37,6 +43,39 @@ app.get("/api/test", (req, res) => {
     status: "working",
     timestamp: new Date().toISOString()
   });
+});
+
+// Add booking routes
+app.get("/api/bookings", (req, res) => {
+  console.log('Bookings GET route hit');
+  res.json({
+    message: "Bookings endpoint working",
+    data: [],
+    count: 0,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.post("/api/bookings", (req, res) => {
+  console.log('Bookings POST route hit');
+  res.json({
+    message: "Booking created (mock)",
+    data: { id: 1, ...req.body },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add other API routes your frontend needs
+app.get("/api/categories", (req, res) => {
+  res.json({ data: [], count: 0 });
+});
+
+app.get("/api/items", (req, res) => {
+  res.json({ data: [], count: 0 });
+});
+
+app.get("/api/cash", (req, res) => {
+  res.json({ data: [], count: 0 });
 });
 
 // 404 handler
