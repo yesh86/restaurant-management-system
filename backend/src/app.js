@@ -9,6 +9,7 @@ console.log('Starting minimal app...');
 // Basic middleware with CORS for your frontend
 app.use(cors({
   origin: [
+    'https://restaurant-management-system-i9un-5xsqhcdoi-yesh86s-projects.vercel.app',
     'https://restaurant-management-system-i9un-2fh4frqrs-yesh86s-projects.vercel.app',
     'http://localhost:3000',
     'http://localhost:3001'
