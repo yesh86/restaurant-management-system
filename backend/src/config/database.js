@@ -1,34 +1,54 @@
-                                               const { Sequelize } = require('sequelize');
+const { Sequelize } = require('sequelize');
 const path = require('path');
-require('dotenv').config();
 
-// Create database directory if it doesn't exist
-const fs = require('fs');
-const dbDir = path.dirname(process.env.SQLITE_PATH || './database/ims.db');
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+// Remove the fs.mkdirSync line that's causing the error!
+
+let sequelize;
+
+if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  // Use in-memory SQLite for Vercel/production
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: ':memory:', // This creates an in-memory database
+    logging: false, // Disable logging in production
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
+  });
+} else {
+  // Development - use file-based SQLite
+  const fs = require('fs');
+  const dbDir = path.join(__dirname, '../database');
+
+  // Only create directory in development
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: path.join(dbDir, 'ims.db'),
+    logging: console.log,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
+  });
 }
 
-// Initialize Sequelize with SQLite
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: process.env.SQLITE_PATH || './database/ims.db',
-  logging: process.env.NODE_ENV === 'development' ? console.log : false,
-  define: {
-    timestamps: true,
-    underscored: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at'
-  }
-});
-
-// Test database connection
 const testConnection = async () => {
   try {
     await sequelize.authenticate();
-    console.log('✅ Database connection established successfully.');
+    console.log('✅ Database connection has been established successfully.');
+    return true;
   } catch (error) {
-    console.error('❌ Unable to connect to the database:', error);
+    console.error('❌ Unable to connect to the database:', error.message);
+    throw error;
   }
 };
 
