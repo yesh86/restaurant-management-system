@@ -9,7 +9,19 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? [
+        'https://your-frontend-domain.vercel.app', // Replace with your actual frontend URL
+        'https://your-custom-domain.com' // Add any custom domains
+      ]
+    : [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:5173', // for Vite
+        'http://localhost:4173'  // for Vite preview
+      ]
+}));
 app.use(morgan("combined"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -26,22 +38,29 @@ try {
     try {
       await testConnection();
 
-      // Try alter first, fallback to force if it fails
-      try {
-        await models.sequelize.sync({ alter: true });
-        console.log('🗄️ Database synchronized with all tables');
-      } catch (alterError) {
-        console.log('⚠️ Alter sync failed, using force sync...');
-        await models.sequelize.sync({ force: true });
-        console.log('🗄️ Database force synchronized - all tables recreated');
-
-        // Re-run seed after force sync
+      // For production, use safer sync options
+      if (process.env.NODE_ENV === 'production') {
+        // In production, only sync without altering tables
+        await models.sequelize.sync({ alter: false });
+        console.log('🗄️ Database synchronized (production mode)');
+      } else {
+        // Development mode - try alter first, fallback to force if it fails
         try {
-          const seedData = require('./utils/seed');
-          await seedData();
-          console.log('🌱 Seed data reloaded');
-        } catch (seedError) {
-          console.log('⚠️ Seed failed, but database is ready');
+          await models.sequelize.sync({ alter: true });
+          console.log('🗄️ Database synchronized with all tables');
+        } catch (alterError) {
+          console.log('⚠️ Alter sync failed, using force sync...');
+          await models.sequelize.sync({ force: true });
+          console.log('🗄️ Database force synchronized - all tables recreated');
+
+          // Re-run seed after force sync
+          try {
+            const seedData = require('./utils/seed');
+            await seedData();
+            console.log('🌱 Seed data reloaded');
+          } catch (seedError) {
+            console.log('⚠️ Seed failed, but database is ready');
+          }
         }
       }
 
@@ -50,7 +69,10 @@ try {
     }
   };
 
-  initializeDatabase();
+  // Only initialize database if not in Vercel build process
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL_ENV) {
+    initializeDatabase();
+  }
 
 } catch (error) {
   console.error('❌ Failed to load models:', error.message);
@@ -69,6 +91,7 @@ app.get("/", (req, res) => {
     version: "1.0.0",
     modules: ["Banquet", "Procurement", "Cash Management"],
     status: "All APIs available",
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
       categories: "/api/categories",
       items: "/api/items",
@@ -84,7 +107,8 @@ app.get("/health", (req, res) => {
     status: "OK",
     timestamp: new Date().toISOString(),
     database: "Connected",
-    apis: "Active"
+    apis: "Active",
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -154,15 +178,19 @@ app.use((error, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 API: http://localhost:${PORT}`);
-  console.log(`🧪 Test: http://localhost:${PORT}/api/test`);
-  console.log('📋 Available APIs:');
-  console.log('   📦 Categories: http://localhost:' + PORT + '/api/categories');
-  console.log('   🛍️  Items: http://localhost:' + PORT + '/api/items');
-  console.log('   🎉 Bookings: http://localhost:' + PORT + '/api/bookings');
-  console.log('   💰 Cash: http://localhost:' + PORT + '/api/cash');
-});
+// Only start server if not in Vercel environment
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 API: http://localhost:${PORT}`);
+    console.log(`🧪 Test: http://localhost:${PORT}/api/test`);
+    console.log('📋 Available APIs:');
+    console.log('   📦 Categories: http://localhost:' + PORT + '/api/categories');
+    console.log('   🛍️  Items: http://localhost:' + PORT + '/api/items');
+    console.log('   🎉 Bookings: http://localhost:' + PORT + '/api/bookings');
+    console.log('   💰 Cash: http://localhost:' + PORT + '/api/cash');
+  });
+}
 
+// Export the app for Vercel
 module.exports = app;
