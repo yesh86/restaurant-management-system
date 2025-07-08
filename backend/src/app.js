@@ -6,19 +6,14 @@ const PORT = process.env.PORT || 5000;
 
 console.log('Starting minimal app...');
 
-// Basic middleware with CORS - allow all Vercel URLs
+// Basic middleware with CORS - use stable domains
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, etc.)
-    if (!origin) return callback(null, true);
-
-    // Allow any Vercel app URL or localhost
-    if (origin.includes('vercel.app') || origin.includes('localhost')) {
-      return callback(null, true);
-    }
-
-    return callback(new Error('Not allowed by CORS'));
-  }
+  origin: [
+    'https://restaurant-management-system-i9un.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ],
+  credentials: true
 }));
 app.use(express.json());
 
