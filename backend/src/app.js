@@ -6,14 +6,10 @@ const PORT = process.env.PORT || 5000;
 
 console.log('Starting minimal app...');
 
-// Basic middleware with CORS - use stable domains
+// Basic middleware with CORS - allow all origins (temporary)
 app.use(cors({
-  origin: [
-    'https://restaurant-management-system-i9un.vercel.app',
-    'http://localhost:3000',
-    'http://localhost:3001'
-  ],
-  credentials: true
+  origin: '*',
+  credentials: false
 }));
 app.use(express.json());
 
