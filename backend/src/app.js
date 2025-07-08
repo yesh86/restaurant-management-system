@@ -45,10 +45,11 @@ app.get("/debug-cors", (req, res) => {
 
 app.get("/", (req, res) => {
   console.log('Root route hit');
+  res.set('Access-Control-Allow-Origin', '*'); // Manual header for root too
   res.json({
     message: "Restaurant Management System API is running!",
-    version: "1.0.0",
-    status: "Working",
+    version: "1.0.1", // Changed version to test deployment
+    status: "Working with manual CORS",
     timestamp: new Date().toISOString()
   });
 });
