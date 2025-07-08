@@ -48,8 +48,9 @@ app.get("/", (req, res) => {
   res.set('Access-Control-Allow-Origin', '*'); // Manual header for root too
   res.json({
     message: "Restaurant Management System API is running!",
-    version: "1.0.1", // Changed version to test deployment
+    version: "1.0.2", // Update version to track deployment
     status: "Working with manual CORS",
+    deployTime: "2025-01-08T00:35:00Z", // Add deploy timestamp
     timestamp: new Date().toISOString()
   });
 });
