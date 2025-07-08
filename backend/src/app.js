@@ -71,7 +71,21 @@ app.get("/api/test", (req, res) => {
 app.get("/api/bookings", (req, res) => {
   setCorsHeaders(res);
   console.log('Bookings GET route hit');
-  res.json([]); // Return empty array directly for frontend compatibility
+  // Return array with sample booking data to test frontend
+  res.json([
+    {
+      id: 1,
+      customer_name: "Sample Customer",
+      event_type: "Wedding",
+      booking_date: "2025-01-15",
+      pax: 100,
+      total_amount: 50000,
+      status: "Confirmed",
+      contact_number: "9876543210",
+      time_slot: "6:00 PM - 10:00 PM",
+      hall: "Main Hall"
+    }
+  ]);
 });
 
 app.post("/api/bookings", (req, res) => {
