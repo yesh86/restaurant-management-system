@@ -4,77 +4,82 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-console.log('🚀 Starting Restaurant Management API...');
+console.log('Starting minimal app...');
 
-// Configure allowed origins
-const allowedOrigins = [
-  'https://restaurant-frontend-e61w4hl68-yesh86s-projects.vercel.app',
-  'https://restaurant-frontend-*.vercel.app', // Wildcard for all preview deployments
-  'http://localhost:3000'
-];
-
-// Enhanced CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Check if origin matches any allowed pattern
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      if (allowedOrigin.includes('*')) {
-        const regex = new RegExp(allowedOrigin.replace('*', '.*'));
-        return regex.test(origin);
-      }
-      return origin === allowedOrigin;
-    });
-
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.log('🚨 Blocked by CORS:', origin);
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  credentials: true,
-  maxAge: 86400 // 24 hours
+// CORS helper function
+const setCorsHeaders = (res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 };
 
-// Apply CORS middleware
-app.use(cors(corsOptions));
+// Handle preflight requests globally
+app.options('*', (req, res) => {
+  console.log('OPTIONS request received:', req.method, req.path);
+  setCorsHeaders(res);
+  res.sendStatus(200);
+});
 
-// Handle preflight requests
-app.options('*', cors(corsOptions));
-
-// Body parser middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Logging middleware
+// Add explicit CORS middleware as backup
 app.use((req, res, next) => {
-  console.log(`📡 ${new Date().toISOString()} - ${req.method} ${req.path} from ${req.get('Origin') || 'no origin'}`);
+  console.log('CORS middleware:', req.method, req.path, 'from', req.get('Origin'));
+  setCorsHeaders(res);
   next();
 });
 
-// Health check endpoint
-app.get("/health", (req, res) => {
+// Remove all other CORS middleware - we'll handle it manually
+app.use(express.json());
+
+app.get("/cors-test", (req, res) => {
+  // Set CORS headers manually
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
   res.json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    version: "1.1.0",
-    cors: {
-      allowedOrigins: allowedOrigins,
-      status: "Active"
-    }
+    message: "CORS test endpoint",
+    working: true,
+    timestamp: new Date().toISOString()
   });
 });
 
-// API routes group
-const apiRouter = express.Router();
+app.get("/", (req, res) => {
+  setCorsHeaders(res);
+  console.log('Root route hit');
+  res.json({
+    message: "Restaurant Management System API is running!",
+    version: "1.0.5",
+    status: "Working with enhanced CORS and sample data",
+    deployTime: "2025-01-08T02:25:00Z",
+    timestamp: new Date().toISOString()
+  });
+});
 
-// Booking endpoints
-apiRouter.get("/bookings", (req, res) => {
+app.get("/health", (req, res) => {
+  setCorsHeaders(res);
+  console.log('Health route hit');
+  res.json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    message: "API is healthy"
+  });
+});
+
+app.get("/api/test", (req, res) => {
+  setCorsHeaders(res);
+  console.log('Test route hit');
+  res.json({
+    message: "API test successful",
+    status: "working",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add booking routes
+app.get("/api/bookings", (req, res) => {
+  setCorsHeaders(res);
+  console.log('Bookings GET route hit - returning sample data');
+  // Return array with sample booking data to test frontend
   res.json([
     {
       id: 1,
@@ -103,70 +108,115 @@ apiRouter.get("/bookings", (req, res) => {
   ]);
 });
 
-// Other API endpoints
-apiRouter.get("/categories", (req, res) => res.json([]));
-apiRouter.get("/items", (req, res) => res.json([]));
-apiRouter.get("/cash", (req, res) => res.json([]));
-apiRouter.get("/cash/summary", (req, res) => res.json({
-  totalIncome: 0,
-  totalExpense: 0,
-  balance: 0,
-  transactions: 0
-}));
-apiRouter.get("/bookings/today", (req, res) => res.json([]));
-apiRouter.get("/bookings/upcoming", (req, res) => res.json([]));
-apiRouter.post("/cash", (req, res) => res.json({
-  message: "Cash transaction created (mock)",
-  data: { id: Date.now(), ...req.body }
-}));
-apiRouter.get("/departments", (req, res) => res.json([]));
-apiRouter.get("/vendors", (req, res) => res.json([]));
+app.post("/api/bookings", (req, res) => {
+  setCorsHeaders(res);
+  console.log('Bookings POST route hit');
+  res.json({
+    message: "Booking created (mock)",
+    data: { id: 1, ...req.body },
+    timestamp: new Date().toISOString()
+  });
+});
 
-// Mount API router
-app.use("/api", apiRouter);
+// Add other API routes your frontend needs
+app.get("/api/categories", (req, res) => {
+  setCorsHeaders(res);
+  res.json([]); // Return empty array directly
+});
+
+app.get("/api/items", (req, res) => {
+  setCorsHeaders(res);
+  res.json([]); // Return empty array directly
+});
+
+app.get("/api/cash", (req, res) => {
+  setCorsHeaders(res);
+  res.json([]); // Return empty array directly
+});
+
+app.get("/api/cash/summary", (req, res) => {
+  setCorsHeaders(res);
+  res.json({
+    totalIncome: 0,
+    totalExpense: 0,
+    balance: 0,
+    transactions: 0
+  });
+});
+
+// Additional banquet/booking endpoints
+app.get("/api/bookings/today", (req, res) => {
+  setCorsHeaders(res);
+  res.json([]); // Return empty array directly
+});
+
+app.get("/api/bookings/upcoming", (req, res) => {
+  setCorsHeaders(res);
+  res.json([]); // Return empty array directly
+});
+
+// Additional cash endpoints
+app.post("/api/cash", (req, res) => {
+  setCorsHeaders(res);
+  res.json({
+    message: "Cash transaction created (mock)",
+    data: { id: 1, ...req.body }
+  });
+});
+
+app.get("/api/cash/transactions", (req, res) => {
+  setCorsHeaders(res);
+  res.json([]); // Return empty array directly
+});
+
+// Departments endpoint (often needed)
+app.get("/api/departments", (req, res) => {
+  setCorsHeaders(res);
+  res.json([]); // Return empty array directly
+});
+
+// Vendors endpoint (often needed)
+app.get("/api/vendors", (req, res) => {
+  setCorsHeaders(res);
+  res.json([]); // Return empty array directly
+});
 
 // 404 handler
 app.use((req, res) => {
+  setCorsHeaders(res);
   res.status(404).json({
     error: 'Endpoint not found',
     path: req.path,
-    timestamp: new Date().toISOString(),
-    availableEndpoints: [
-      '/api/bookings',
-      '/api/categories',
-      '/api/items',
-      '/api/cash',
-      '/health'
-    ]
+    timestamp: new Date().toISOString()
   });
 });
 
 // Error handler
-app.use((err, req, res, next) => {
-  console.error('🔥 API Error:', err);
+app.use((error, req, res, next) => {
+  setCorsHeaders(res);
+  console.error('Error:', error);
   res.status(500).json({
     error: 'Internal server error',
-    message: err.message,
-    timestamp: new Date().toISOString(),
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    message: error.message,
+    timestamp: new Date().toISOString()
   });
 });
 
+console.log('App configuration complete');
+
 // Start server locally, export for Vercel
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 Server running on port ${PORT}`);
-    console.log(`📡 Local: http://localhost:${PORT}`);
-    console.log(`🌐 Network: http://${require('ip').address()}:${PORT}`);
-    console.log('\n📋 Available API Endpoints:');
-    console.log(`   🔍 Health: http://localhost:${PORT}/health`);
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 API: http://localhost:${PORT}`);
+    console.log(`🧪 Test: http://localhost:${PORT}/api/test`);
+    console.log('📋 Available APIs:');
     console.log(`   📦 Bookings: http://localhost:${PORT}/api/bookings`);
-    console.log(`   🛍️ Categories: http://localhost:${PORT}/api/categories`);
+    console.log(`   🛍️  Categories: http://localhost:${PORT}/api/categories`);
     console.log(`   💰 Cash: http://localhost:${PORT}/api/cash`);
-    console.log('\n🔒 CORS Allowed Origins:', allowedOrigins);
   });
 } else {
-  console.log('⚡ Production mode - server will be handled by Vercel');
+  console.log('Production mode - server will be handled by Vercel');
 }
 
 // Export for Vercel
