@@ -6,32 +6,21 @@ const PORT = process.env.PORT || 5000;
 
 console.log('🚀 Starting Restaurant Management API...');
 
-// Enhanced CORS configuration - allows all Vercel domains
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Allow any vercel.app domain or localhost
-    if (origin.includes('vercel.app') || origin.includes('localhost')) {
-      console.log('✅ CORS allowed:', origin);
-      return callback(null, true);
-    }
-
-    console.log('🚨 Blocked by CORS:', origin);
-    callback(new Error(`Origin ${origin} not allowed by CORS`));
-  },
+// Simple CORS configuration - allow everything
+app.use(cors({
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  credentials: false,
-  maxAge: 86400 // 24 hours
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
+  credentials: false
+}));
 
 // Handle preflight requests
-app.options('*', cors(corsOptions));
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.sendStatus(200);
+});
 
 // Body parser middleware
 app.use(express.json());
@@ -47,11 +36,11 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
   res.json({
     message: "Restaurant Management System API is running!",
-    version: "1.1.1",
-    status: "Enhanced CORS with dynamic Vercel domain support",
+    version: "1.1.2",
+    status: "Wildcard CORS - Allow All Origins",
     timestamp: new Date().toISOString(),
     cors: {
-      status: "Active - All Vercel domains allowed"
+      status: "Active - All origins allowed"
     },
     endpoints: [
       "/health",
