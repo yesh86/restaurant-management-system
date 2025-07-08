@@ -71,12 +71,7 @@ app.get("/api/test", (req, res) => {
 app.get("/api/bookings", (req, res) => {
   setCorsHeaders(res);
   console.log('Bookings GET route hit');
-  res.json({
-    message: "Bookings endpoint working",
-    data: [],
-    count: 0,
-    timestamp: new Date().toISOString()
-  });
+  res.json([]); // Return empty array directly for frontend compatibility
 });
 
 app.post("/api/bookings", (req, res) => {
@@ -92,17 +87,17 @@ app.post("/api/bookings", (req, res) => {
 // Add other API routes your frontend needs
 app.get("/api/categories", (req, res) => {
   setCorsHeaders(res);
-  res.json({ data: [], count: 0 });
+  res.json([]); // Return empty array directly
 });
 
 app.get("/api/items", (req, res) => {
   setCorsHeaders(res);
-  res.json({ data: [], count: 0 });
+  res.json([]); // Return empty array directly
 });
 
 app.get("/api/cash", (req, res) => {
   setCorsHeaders(res);
-  res.json({ data: [], count: 0 });
+  res.json([]); // Return empty array directly
 });
 
 app.get("/api/cash/summary", (req, res) => {
@@ -118,12 +113,12 @@ app.get("/api/cash/summary", (req, res) => {
 // Additional banquet/booking endpoints
 app.get("/api/bookings/today", (req, res) => {
   setCorsHeaders(res);
-  res.json({ data: [], count: 0 });
+  res.json([]); // Return empty array directly
 });
 
 app.get("/api/bookings/upcoming", (req, res) => {
   setCorsHeaders(res);
-  res.json({ data: [], count: 0 });
+  res.json([]); // Return empty array directly
 });
 
 // Additional cash endpoints
@@ -137,19 +132,19 @@ app.post("/api/cash", (req, res) => {
 
 app.get("/api/cash/transactions", (req, res) => {
   setCorsHeaders(res);
-  res.json({ data: [], count: 0 });
+  res.json([]); // Return empty array directly
 });
 
 // Departments endpoint (often needed)
 app.get("/api/departments", (req, res) => {
   setCorsHeaders(res);
-  res.json({ data: [], count: 0 });
+  res.json([]); // Return empty array directly
 });
 
 // Vendors endpoint (often needed)
 app.get("/api/vendors", (req, res) => {
   setCorsHeaders(res);
-  res.json({ data: [], count: 0 });
+  res.json([]); // Return empty array directly
 });
 
 // 404 handler
