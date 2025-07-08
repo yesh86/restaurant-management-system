@@ -6,9 +6,11 @@ const PORT = process.env.PORT || 5000;
 
 console.log('Starting minimal app...');
 
-// Basic middleware with CORS - allow all origins (temporary)
+// Basic middleware with explicit CORS configuration
 app.use(cors({
-  origin: '*',
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false
 }));
 app.use(express.json());
