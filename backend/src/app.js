@@ -204,5 +204,20 @@ app.use((error, req, res, next) => {
 
 console.log('App configuration complete');
 
+// Start server locally, export for Vercel
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 API: http://localhost:${PORT}`);
+    console.log(`🧪 Test: http://localhost:${PORT}/api/test`);
+    console.log('📋 Available APIs:');
+    console.log(`   📦 Bookings: http://localhost:${PORT}/api/bookings`);
+    console.log(`   🛍️  Categories: http://localhost:${PORT}/api/categories`);
+    console.log(`   💰 Cash: http://localhost:${PORT}/api/cash`);
+  });
+} else {
+  console.log('Production mode - server will be handled by Vercel');
+}
+
 // Export for Vercel
 module.exports = app;
