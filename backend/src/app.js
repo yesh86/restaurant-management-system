@@ -48,9 +48,9 @@ app.get("/", (req, res) => {
   console.log('Root route hit');
   res.json({
     message: "Restaurant Management System API is running!",
-    version: "1.0.4",
-    status: "Working with simplified CORS and sample data",
-    deployTime: "2025-01-08T02:05:00Z",
+    version: "1.0.5",
+    status: "Working with enhanced CORS and sample data",
+    deployTime: "2025-01-08T02:25:00Z",
     timestamp: new Date().toISOString()
   });
 });
