@@ -7,7 +7,7 @@ import CalendarView from './CalendarView';
 import BanquetReports from './BanquetReports';
 
 const BanquetModule = () => {
-  const { bookings, loading, error } = useApp();
+  const { bookings = [], loading, error } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
