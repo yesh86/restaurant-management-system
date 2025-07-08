@@ -188,20 +188,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server locally, export for Vercel
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+// Start server locally and on Render, export for Vercel
+if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
-    console.log(`📡 Local: http://localhost:${PORT}`);
+    console.log(`📡 Server URL: http://localhost:${PORT}`);
     console.log('\n📋 Available API Endpoints:');
-    console.log(`   🔍 Health: http://localhost:${PORT}/health`);
-    console.log(`   📦 Bookings: http://localhost:${PORT}/api/bookings`);
-    console.log(`   🛍️ Categories: http://localhost:${PORT}/api/categories`);
-    console.log(`   💰 Cash: http://localhost:${PORT}/api/cash`);
-    console.log('\n🔒 CORS: All Vercel domains and localhost allowed');
+    console.log(`   🔍 Health: /health`);
+    console.log(`   📦 Bookings: /api/bookings`);
+    console.log(`   🛍️ Categories: /api/categories`);
+    console.log(`   💰 Cash: /api/cash`);
+    console.log('\n🔒 CORS: All origins allowed');
+    console.log(`✅ Server ready for ${process.env.NODE_ENV || 'development'} environment`);
   });
 } else {
-  console.log('⚡ Production mode - server will be handled by Vercel');
+  console.log('⚡ Vercel mode - server will be handled by Vercel');
 }
 
 // Export for Vercel
