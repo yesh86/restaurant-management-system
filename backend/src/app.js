@@ -40,9 +40,9 @@ app.get("/", (req, res) => {
   console.log('Root route hit');
   res.json({
     message: "Restaurant Management System API is running!",
-    version: "1.0.3",
-    status: "Working with simplified CORS",
-    deployTime: "2025-01-08T00:55:00Z",
+    version: "1.0.4",
+    status: "Working with simplified CORS and sample data",
+    deployTime: "2025-01-08T02:05:00Z",
     timestamp: new Date().toISOString()
   });
 });
@@ -70,7 +70,7 @@ app.get("/api/test", (req, res) => {
 // Add booking routes
 app.get("/api/bookings", (req, res) => {
   setCorsHeaders(res);
-  console.log('Bookings GET route hit');
+  console.log('Bookings GET route hit - returning sample data');
   // Return array with sample booking data to test frontend
   res.json([
     {
@@ -84,6 +84,18 @@ app.get("/api/bookings", (req, res) => {
       contact_number: "9876543210",
       time_slot: "6:00 PM - 10:00 PM",
       hall: "Main Hall"
+    },
+    {
+      id: 2,
+      customer_name: "Test User",
+      event_type: "Birthday Party",
+      booking_date: "2025-01-20",
+      pax: 50,
+      total_amount: 25000,
+      status: "Pending",
+      contact_number: "9876543211",
+      time_slot: "12:00 PM - 4:00 PM",
+      hall: "Side Hall"
     }
   ]);
 });
