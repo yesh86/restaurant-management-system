@@ -6,6 +6,21 @@ const PORT = process.env.PORT || 5000;
 
 console.log('Starting minimal app...');
 
+// Manual CORS middleware
+app.use((req, res, next) => {
+  console.log(`CORS: ${req.method} ${req.path} from ${req.get('Origin')}`);
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    console.log('CORS: Responding to OPTIONS request');
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // Basic middleware with explicit CORS configuration
 app.use(cors({
   origin: true,
@@ -16,6 +31,18 @@ app.use(cors({
 app.use(express.json());
 
 // Test route
+app.get("/debug-cors", (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  res.json({
+    message: "Manual CORS headers test",
+    origin: req.get('Origin'),
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get("/", (req, res) => {
   console.log('Root route hit');
   res.json({
