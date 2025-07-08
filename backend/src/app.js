@@ -15,8 +15,16 @@ const setCorsHeaders = (res) => {
 
 // Handle preflight requests globally
 app.options('*', (req, res) => {
+  console.log('OPTIONS request received:', req.method, req.path);
   setCorsHeaders(res);
   res.sendStatus(200);
+});
+
+// Add explicit CORS middleware as backup
+app.use((req, res, next) => {
+  console.log('CORS middleware:', req.method, req.path, 'from', req.get('Origin'));
+  setCorsHeaders(res);
+  next();
 });
 
 // Remove all other CORS middleware - we'll handle it manually
