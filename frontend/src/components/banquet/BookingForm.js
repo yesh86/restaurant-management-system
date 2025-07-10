@@ -20,6 +20,8 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     food_total: '',
     total_amount: '',
     discount: '',
+    extra_plates: '',
+    extra_cost: '',
 
     // Advance Payment 1
     advance1_amount: '',
@@ -74,6 +76,8 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         food_total: booking.food_total || '',
         total_amount: booking.total_amount || '',
         discount: booking.discount || '',
+        extra_plates: booking.extra_plates || '',
+        extra_cost: booking.extra_cost || '',
 
         advance1_amount: booking.advance1_amount || '',
         advance1_date: booking.advance1_date || '',
@@ -116,15 +120,16 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         }
       }
 
-      // Auto-calculate total amount when food total or hall rent changes
-      if (name === 'food_total' || name === 'hall_rent' || name === 'pax' || name === 'menu_price') {
+      // Auto-calculate total amount when food total, hall rent, or extra cost changes
+      if (name === 'food_total' || name === 'hall_rent' || name === 'extra_cost' || name === 'pax' || name === 'menu_price') {
         const foodTotal = parseFloat(name === 'food_total' ? value : updated.food_total) || 0;
         const hallRent = parseFloat(name === 'hall_rent' ? value : updated.hall_rent) || 0;
-        updated.total_amount = (foodTotal + hallRent).toString();
+        const extraCost = parseFloat(name === 'extra_cost' ? value : updated.extra_cost) || 0;
+        updated.total_amount = (foodTotal + hallRent + extraCost).toString();
       }
 
       // Auto-update status when payment amounts change
-      if (name === 'total_amount' || name === 'discount' ||
+      if (name === 'total_amount' || name === 'discount' || name === 'extra_cost' ||
           name === 'advance1_amount' || name === 'advance2_amount' ||
           name === 'advance3_amount' || name === 'final_amount') {
 
@@ -196,6 +201,8 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         food_total: parseFloat(formData.food_total) || 0,
         total_amount: parseFloat(formData.total_amount) || 0,
         discount: parseFloat(formData.discount) || 0,
+        extra_plates: parseInt(formData.extra_plates) || 0,
+        extra_cost: parseFloat(formData.extra_cost) || 0,
 
         advance1_amount: parseFloat(formData.advance1_amount) || 0,
         advance2_amount: parseFloat(formData.advance2_amount) || 0,
@@ -366,7 +373,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mt-4">
+            <div className="grid grid-cols-1 lg:grid-cols-6 gap-3 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Menu Type</label>
                 <select
@@ -639,10 +646,10 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 </div>
               </div>
 
-              {/* Discount Field */}
+              {/* Discount and Extra Charges */}
               <div className="bg-orange-50 p-4 rounded-lg border">
-                <h4 className="text-md font-medium text-gray-700 mb-3">Discount</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h4 className="text-md font-medium text-gray-700 mb-3">Discount & Extra Charges</h4>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Discount Amount (₹)</label>
                     <input
@@ -656,9 +663,34 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                       step="0.01"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Extra Plates</label>
+                    <input
+                      type="number"
+                      name="extra_plates"
+                      value={formData.extra_plates}
+                      onChange={handleChange}
+                      placeholder="Number of extra plates"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Extra Cost (₹)</label>
+                    <input
+                      type="number"
+                      name="extra_cost"
+                      value={formData.extra_cost}
+                      onChange={handleChange}
+                      placeholder="Extra charges amount"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
                   <div className="flex items-end">
                     <p className="text-sm text-gray-600">
-                      Discount amount (manually enter final payment amount below)
+                      Additional charges will be added to total amount
                     </p>
                   </div>
                 </div>
@@ -727,7 +759,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
             {/* Payment Summary */}
             <div className="mt-6 bg-white p-4 rounded-lg border-2 border-gray-200">
               <h5 className="text-md font-medium text-gray-800 mb-3">Payment Summary</h5>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-4 text-center">
                 <div>
                   <p className="text-sm text-gray-600">Food Total:</p>
                   <p className="text-lg font-bold text-blue-600">₹{(parseFloat(formData.food_total) || 0).toLocaleString()}</p>
@@ -735,6 +767,10 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 <div>
                   <p className="text-sm text-gray-600">Hall Rent:</p>
                   <p className="text-lg font-bold text-purple-600">₹{(parseFloat(formData.hall_rent) || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Extra Cost:</p>
+                  <p className="text-lg font-bold text-indigo-600">₹{(parseFloat(formData.extra_cost) || 0).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Amount:</p>
