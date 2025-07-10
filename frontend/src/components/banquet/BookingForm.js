@@ -224,7 +224,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-semibold">
             {booking ? 'Edit Booking' : 'Create New Booking'}
@@ -366,7 +366,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Menu Type</label>
                 <select
@@ -413,7 +413,21 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                   name="food_total"
                   value={formData.food_total}
                   onChange={handleChange}
-                  placeholder="Auto-calculated: PAX × Price"
+                  placeholder="Auto-calculated"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
+                  min="0"
+                  step="0.01"
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Grand Total (₹)</label>
+                <input
+                  type="number"
+                  name="total_amount"
+                  value={formData.total_amount}
+                  onChange={handleChange}
+                  placeholder="Food + Hall Rent"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
                   min="0"
                   step="0.01"
