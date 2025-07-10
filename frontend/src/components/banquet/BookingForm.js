@@ -16,6 +16,8 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     pax: '',
     menu_type: 'Veg Standard',
     menu_price: '',
+    hall_rent: '',
+    food_total: '',
     total_amount: '',
     discount: '',
 
@@ -23,21 +25,25 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     advance1_amount: '',
     advance1_date: '',
     advance1_method: 'Cash',
+    advance1_receipt: '',
 
     // Advance Payment 2
     advance2_amount: '',
     advance2_date: '',
     advance2_method: 'Cash',
+    advance2_receipt: '',
 
     // Advance Payment 3
     advance3_amount: '',
     advance3_date: '',
     advance3_method: 'Cash',
+    advance3_receipt: '',
 
     // Final Payment
     final_amount: '',
     final_date: '',
     final_method: 'Cash',
+    final_receipt: '',
 
     status: 'Not Paid',
     notes: ''
@@ -64,24 +70,30 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         pax: booking.pax || '',
         menu_type: booking.menu_type || 'Veg Standard',
         menu_price: booking.menu_price || '',
+        hall_rent: booking.hall_rent || '',
+        food_total: booking.food_total || '',
         total_amount: booking.total_amount || '',
         discount: booking.discount || '',
 
         advance1_amount: booking.advance1_amount || '',
         advance1_date: booking.advance1_date || '',
         advance1_method: booking.advance1_method || 'Cash',
+        advance1_receipt: booking.advance1_receipt || '',
 
         advance2_amount: booking.advance2_amount || '',
         advance2_date: booking.advance2_date || '',
         advance2_method: booking.advance2_method || 'Cash',
+        advance2_receipt: booking.advance2_receipt || '',
 
         advance3_amount: booking.advance3_amount || '',
         advance3_date: booking.advance3_date || '',
         advance3_method: booking.advance3_method || 'Cash',
+        advance3_receipt: booking.advance3_receipt || '',
 
         final_amount: booking.final_amount || '',
         final_date: booking.final_date || '',
         final_method: booking.final_method || 'Cash',
+        final_receipt: booking.final_receipt || '',
 
         status: booking.status || 'Not Paid',
         notes: booking.notes || ''
@@ -95,13 +107,20 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     setFormData(prev => {
       const updated = { ...prev, [name]: value };
 
-      // Auto-calculate total amount when PAX or price per person changes
+      // Auto-calculate food total when PAX or price per person changes
       if (name === 'pax' || name === 'menu_price') {
         const pax = parseInt(name === 'pax' ? value : updated.pax) || 0;
         const price = parseFloat(name === 'menu_price' ? value : updated.menu_price) || 0;
         if (pax > 0 && price > 0) {
-          updated.total_amount = (pax * price).toString();
+          updated.food_total = (pax * price).toString();
         }
+      }
+
+      // Auto-calculate total amount when food total or hall rent changes
+      if (name === 'food_total' || name === 'hall_rent' || name === 'pax' || name === 'menu_price') {
+        const foodTotal = parseFloat(name === 'food_total' ? value : updated.food_total) || 0;
+        const hallRent = parseFloat(name === 'hall_rent' ? value : updated.hall_rent) || 0;
+        updated.total_amount = (foodTotal + hallRent).toString();
       }
 
       // Auto-update status when payment amounts change
@@ -173,6 +192,8 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         ...formData,
         pax: parseInt(formData.pax),
         menu_price: parseFloat(formData.menu_price) || 0,
+        hall_rent: parseFloat(formData.hall_rent) || 0,
+        food_total: parseFloat(formData.food_total) || 0,
         total_amount: parseFloat(formData.total_amount) || 0,
         discount: parseFloat(formData.discount) || 0,
 
@@ -345,7 +366,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Menu Type</label>
                 <select
@@ -373,11 +394,24 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount (₹)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hall Rent (₹)</label>
                 <input
                   type="number"
-                  name="total_amount"
-                  value={formData.total_amount}
+                  name="hall_rent"
+                  value={formData.hall_rent}
+                  onChange={handleChange}
+                  placeholder="Enter hall rent"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount for Food (₹)</label>
+                <input
+                  type="number"
+                  name="food_total"
+                  value={formData.food_total}
                   onChange={handleChange}
                   placeholder="Auto-calculated: PAX × Price"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
@@ -417,7 +451,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               {/* Advance Payment 1 */}
               <div className="bg-blue-50 p-4 rounded-lg border">
                 <h4 className="text-md font-medium text-gray-700 mb-3">Advance Payment 1</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
                     <input
@@ -438,6 +472,17 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                       name="advance1_date"
                       value={formData.advance1_date}
                       onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Number</label>
+                    <input
+                      type="text"
+                      name="advance1_receipt"
+                      value={formData.advance1_receipt}
+                      onChange={handleChange}
+                      placeholder="Enter receipt number"
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -465,7 +510,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               {/* Advance Payment 2 */}
               <div className="bg-yellow-50 p-4 rounded-lg border">
                 <h4 className="text-md font-medium text-gray-700 mb-3">Advance Payment 2</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
                     <input
@@ -486,6 +531,17 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                       name="advance2_date"
                       value={formData.advance2_date}
                       onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Number</label>
+                    <input
+                      type="text"
+                      name="advance2_receipt"
+                      value={formData.advance2_receipt}
+                      onChange={handleChange}
+                      placeholder="Enter receipt number"
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -513,7 +569,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               {/* Advance Payment 3 */}
               <div className="bg-purple-50 p-4 rounded-lg border">
                 <h4 className="text-md font-medium text-gray-700 mb-3">Advance Payment 3</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
                     <input
@@ -534,6 +590,17 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                       name="advance3_date"
                       value={formData.advance3_date}
                       onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Number</label>
+                    <input
+                      type="text"
+                      name="advance3_receipt"
+                      value={formData.advance3_receipt}
+                      onChange={handleChange}
+                      placeholder="Enter receipt number"
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -586,7 +653,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               {/* Final Payment */}
               <div className="bg-green-100 p-4 rounded-lg border">
                 <h4 className="text-md font-medium text-gray-700 mb-3">Final Payment</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
                     <input
@@ -607,6 +674,17 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                       name="final_date"
                       value={formData.final_date}
                       onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Receipt Number</label>
+                    <input
+                      type="text"
+                      name="final_receipt"
+                      value={formData.final_receipt}
+                      onChange={handleChange}
+                      placeholder="Enter receipt number"
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -635,7 +713,15 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
             {/* Payment Summary */}
             <div className="mt-6 bg-white p-4 rounded-lg border-2 border-gray-200">
               <h5 className="text-md font-medium text-gray-800 mb-3">Payment Summary</h5>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+                <div>
+                  <p className="text-sm text-gray-600">Food Total:</p>
+                  <p className="text-lg font-bold text-blue-600">₹{(parseFloat(formData.food_total) || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Hall Rent:</p>
+                  <p className="text-lg font-bold text-purple-600">₹{(parseFloat(formData.hall_rent) || 0).toLocaleString()}</p>
+                </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Amount:</p>
                   <p className="text-lg font-bold text-gray-900">₹{(parseFloat(formData.total_amount) || 0).toLocaleString()}</p>
@@ -652,15 +738,15 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                   <p className="text-sm text-gray-600">Remaining:</p>
                   <p className="text-lg font-bold text-red-600">₹{displayValues.remaining.toLocaleString()}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-600">Status:</p>
-                  <p className={`text-sm font-bold ${
-                    formData.status === 'Fully Paid' ? 'text-green-600' :
-                    formData.status === 'Partially Paid' ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {formData.status}
-                  </p>
-                </div>
+              </div>
+              <div className="mt-3 text-center">
+                <p className="text-sm text-gray-600">Status:</p>
+                <p className={`text-lg font-bold ${
+                  formData.status === 'Fully Paid' ? 'text-green-600' :
+                  formData.status === 'Partially Paid' ? 'text-yellow-600' : 'text-red-600'
+                }`}>
+                  {formData.status}
+                </p>
               </div>
             </div>
           </div>
