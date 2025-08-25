@@ -32,12 +32,66 @@ app.use((req, res, next) => {
   next();
 });
 
+// Database initialization - ADD THIS SECTION
+const { initializeModels } = require('./models');
+const { initializeDatabase } = require('./config/database');
+
+// Initialize database and models on startup
+const initializeApp = async () => {
+  try {
+    console.log('🚀 Initializing Restaurant Management System...');
+
+    // Initialize database connection
+    await initializeDatabase();
+
+    // Initialize all models (creates tables)
+    await initializeModels();
+
+    console.log('✅ Restaurant Management System ready!');
+    console.log('🌐 Access your application at: http://localhost:5000');
+
+  } catch (error) {
+    console.error('❌ Failed to initialize application:', error);
+    process.exit(1); // Exit if initialization fails
+  }
+};
+
+// Call initialization
+initializeApp();
+
+// Test database connection endpoint
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const { Booking, Category, Item } = require('./models');
+
+    const bookingCount = await Booking.count();
+    const categoryCount = await Category.count();
+    const itemCount = await Item.count();
+
+    res.json({
+      status: 'Database connection successful',
+      tables: {
+        bookings: bookingCount,
+        categories: categoryCount,
+        items: itemCount
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'Database connection failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Root endpoint
 app.get("/", (req, res) => {
   res.json({
     message: "Restaurant Management System API is running!",
-    version: "1.1.2",
-    status: "Wildcard CORS - Allow All Origins",
+    version: "1.2.0",
+    status: "SQLite Database Active",
     timestamp: new Date().toISOString(),
     cors: {
       status: "Active - All origins allowed"
@@ -47,7 +101,8 @@ app.get("/", (req, res) => {
       "/api/bookings",
       "/api/categories",
       "/api/items",
-      "/api/cash"
+      "/api/cash",
+      "/api/test-db"
     ]
   });
 });
@@ -57,73 +112,42 @@ app.get("/health", (req, res) => {
   res.json({
     status: "OK",
     timestamp: new Date().toISOString(),
-    version: "1.1.1",
+    version: "1.2.0",
+    database: "SQLite Active",
     cors: {
-      status: "Active - All Vercel domains allowed"
+      status: "Active - All origins allowed"
     }
   });
 });
 
-// API routes group
-const apiRouter = express.Router();
+// Import and use actual controllers
+const bookingController = require('./controllers/bookingController');
 
-// Booking endpoints
-apiRouter.get("/bookings", (req, res) => {
-  console.log('📦 Bookings endpoint hit');
-  res.json([
-    {
-      id: 1,
-      customer_name: "Sample Customer",
-      event_type: "Wedding",
-      booking_date: "2025-01-15",
-      pax: 100,
-      total_amount: 50000,
-      status: "Confirmed",
-      contact_number: "9876543210",
-      time_slot: "6:00 PM - 10:00 PM",
-      hall: "Main Hall"
-    },
-    {
-      id: 2,
-      customer_name: "Test User",
-      event_type: "Birthday Party",
-      booking_date: "2025-01-20",
-      pax: 50,
-      total_amount: 25000,
-      status: "Pending",
-      contact_number: "9876543211",
-      time_slot: "12:00 PM - 4:00 PM",
-      hall: "Side Hall"
-    }
-  ]);
-});
+// Real booking routes using actual database
+app.get('/api/bookings', bookingController.getAllBookings);
+app.get('/api/bookings/date-range', bookingController.getBookingsByDateRange);
+app.get('/api/bookings/:id', bookingController.getBookingById);
+app.post('/api/bookings', bookingController.createBooking);
+app.put('/api/bookings/:id', bookingController.updateBooking);
+app.delete('/api/bookings/:id', bookingController.deleteBooking);
 
-apiRouter.post("/bookings", (req, res) => {
-  console.log('📦 Create booking request');
-  res.json({
-    message: "Booking created (mock)",
-    data: { id: Date.now(), ...req.body },
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Other API endpoints
-apiRouter.get("/categories", (req, res) => {
+// Mock endpoints for other modules (until you implement them)
+app.get("/api/categories", (req, res) => {
   console.log('🛍️ Categories endpoint hit');
   res.json([]);
 });
 
-apiRouter.get("/items", (req, res) => {
+app.get("/api/items", (req, res) => {
   console.log('📋 Items endpoint hit');
   res.json([]);
 });
 
-apiRouter.get("/cash", (req, res) => {
+app.get("/api/cash", (req, res) => {
   console.log('💰 Cash endpoint hit');
   res.json([]);
 });
 
-apiRouter.get("/cash/summary", (req, res) => {
+app.get("/api/cash/summary", (req, res) => {
   console.log('💰 Cash summary endpoint hit');
   res.json({
     totalIncome: 0,
@@ -133,31 +157,28 @@ apiRouter.get("/cash/summary", (req, res) => {
   });
 });
 
-apiRouter.get("/bookings/today", (req, res) => {
+app.get("/api/bookings/today", (req, res) => {
   res.json([]);
 });
 
-apiRouter.get("/bookings/upcoming", (req, res) => {
+app.get("/api/bookings/upcoming", (req, res) => {
   res.json([]);
 });
 
-apiRouter.post("/cash", (req, res) => {
+app.post("/api/cash", (req, res) => {
   res.json({
     message: "Cash transaction created (mock)",
     data: { id: Date.now(), ...req.body }
   });
 });
 
-apiRouter.get("/departments", (req, res) => {
+app.get("/api/departments", (req, res) => {
   res.json([]);
 });
 
-apiRouter.get("/vendors", (req, res) => {
+app.get("/api/vendors", (req, res) => {
   res.json([]);
 });
-
-// Mount API router
-app.use("/api", apiRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -168,6 +189,7 @@ app.use((req, res) => {
     availableEndpoints: [
       '/',
       '/health',
+      '/api/test-db',
       '/api/bookings',
       '/api/categories',
       '/api/items',
@@ -195,10 +217,12 @@ if (!process.env.VERCEL) {
     console.log(`📡 Server URL: http://localhost:${PORT}`);
     console.log('\n📋 Available API Endpoints:');
     console.log(`   🔍 Health: /health`);
+    console.log(`   🧪 DB Test: /api/test-db`);
     console.log(`   📦 Bookings: /api/bookings`);
     console.log(`   🛍️ Categories: /api/categories`);
     console.log(`   💰 Cash: /api/cash`);
-    console.log('\n🔒 CORS: All origins allowed');
+    console.log('\n🗄️ Database: SQLite');
+    console.log('🔑 CORS: All origins allowed');
     console.log(`✅ Server ready for ${process.env.NODE_ENV || 'development'} environment`);
   });
 } else {

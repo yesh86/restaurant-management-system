@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, CreditCard } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
 
 const BookingForm = ({ booking, onSave, onCancel }) => {
-  const { createBooking, loadBookings } = useApp();
   const [formData, setFormData] = useState({
     customer_name: '',
     contact_number: '',
@@ -22,6 +20,10 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     discount: '',
     extra_plates: '',
     extra_cost: '',
+
+    // ODC Boys - New Fields
+    odc_boys_count: '',
+    odc_cost_per_boy: '',
 
     // Advance Payment 1
     advance1_amount: '',
@@ -79,6 +81,10 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         extra_plates: booking.extra_plates || '',
         extra_cost: booking.extra_cost || '',
 
+        // ODC Boys - Initialize from booking data
+        odc_boys_count: booking.odc_boys_count || '',
+        odc_cost_per_boy: booking.odc_cost_per_boy || '',
+
         advance1_amount: booking.advance1_amount || '',
         advance1_date: booking.advance1_date || '',
         advance1_method: booking.advance1_method || 'Cash',
@@ -105,7 +111,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     }
   }, [booking]);
 
-  // Simple change handler with specific auto-calculation for total amount and status
+  // Enhanced change handler with ODC Boys calculation
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => {
@@ -120,18 +126,27 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         }
       }
 
-      // Auto-calculate total amount when food total, hall rent, or extra cost changes
-      if (name === 'food_total' || name === 'hall_rent' || name === 'extra_cost' || name === 'pax' || name === 'menu_price') {
+      // Auto-calculate total amount including ODC Boys cost
+      if (name === 'food_total' || name === 'hall_rent' || name === 'extra_cost' ||
+          name === 'pax' || name === 'menu_price' || name === 'odc_boys_count' || name === 'odc_cost_per_boy') {
+
         const foodTotal = parseFloat(name === 'food_total' ? value : updated.food_total) || 0;
         const hallRent = parseFloat(name === 'hall_rent' ? value : updated.hall_rent) || 0;
         const extraCost = parseFloat(name === 'extra_cost' ? value : updated.extra_cost) || 0;
-        updated.total_amount = (foodTotal + hallRent + extraCost).toString();
+
+        // Calculate ODC Boys cost
+        const odcBoysCount = parseInt(name === 'odc_boys_count' ? value : updated.odc_boys_count) || 0;
+        const odcCostPerBoy = parseFloat(name === 'odc_cost_per_boy' ? value : updated.odc_cost_per_boy) || 0;
+        const odcBoysTotal = odcBoysCount * odcCostPerBoy;
+
+        updated.total_amount = (foodTotal + hallRent + extraCost + odcBoysTotal).toString();
       }
 
       // Auto-update status when payment amounts change
       if (name === 'total_amount' || name === 'discount' || name === 'extra_cost' ||
           name === 'advance1_amount' || name === 'advance2_amount' ||
-          name === 'advance3_amount' || name === 'final_amount') {
+          name === 'advance3_amount' || name === 'final_amount' ||
+          name === 'odc_boys_count' || name === 'odc_cost_per_boy') {
 
         const total = parseFloat(name === 'total_amount' ? value : updated.total_amount) || 0;
         const discount = parseFloat(name === 'discount' ? value : updated.discount) || 0;
@@ -160,7 +175,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     });
   };
 
-  // Calculate values for display and auto-update status
+  // Calculate values for display including ODC Boys cost
   const calculateDisplayValues = () => {
     const total = parseFloat(formData.total_amount) || 0;
     const discount = parseFloat(formData.discount) || 0;
@@ -168,6 +183,11 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     const advance2 = parseFloat(formData.advance2_amount) || 0;
     const advance3 = parseFloat(formData.advance3_amount) || 0;
     const final = parseFloat(formData.final_amount) || 0;
+
+    // Calculate ODC Boys total
+    const odcBoysCount = parseInt(formData.odc_boys_count) || 0;
+    const odcCostPerBoy = parseFloat(formData.odc_cost_per_boy) || 0;
+    const odcBoysTotal = odcBoysCount * odcCostPerBoy;
 
     const totalPaid = advance1 + advance2 + advance3 + final;
     const adjustedTotal = total - discount;
@@ -185,7 +205,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
       }
     }
 
-    return { totalPaid, remaining, autoStatus };
+    return { totalPaid, remaining, autoStatus, odcBoysTotal };
   };
 
   const handleSubmit = async (e) => {
@@ -204,21 +224,22 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         extra_plates: parseInt(formData.extra_plates) || 0,
         extra_cost: parseFloat(formData.extra_cost) || 0,
 
+        // ODC Boys data
+        odc_boys_count: parseInt(formData.odc_boys_count) || 0,
+        odc_cost_per_boy: parseFloat(formData.odc_cost_per_boy) || 0,
+        odc_boys_total: calculateDisplayValues().odcBoysTotal,
+
         advance1_amount: parseFloat(formData.advance1_amount) || 0,
         advance2_amount: parseFloat(formData.advance2_amount) || 0,
         advance3_amount: parseFloat(formData.advance3_amount) || 0,
         final_amount: parseFloat(formData.final_amount) || 0
       };
 
-      if (booking) {
-        // Update logic would go here
-        console.log('Update booking:', bookingData);
-      } else {
-        await createBooking(bookingData);
-        await loadBookings();
-      }
+      // Here you would call your API or parent component's save function
+      console.log('Booking data to save:', bookingData);
 
-      onSave();
+      // Call the onSave prop function passed from parent
+      onSave(bookingData);
     } catch (error) {
       console.error('Error saving booking:', error);
       alert('Error saving booking: ' + error.message);
@@ -241,7 +262,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           {/* Customer Information */}
           <div className="bg-blue-50 p-4 rounded-lg">
             <h4 className="text-lg font-medium text-gray-800 mb-3 flex items-center">
@@ -434,7 +455,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                   name="total_amount"
                   value={formData.total_amount}
                   onChange={handleChange}
-                  placeholder="Food + Hall Rent"
+                  placeholder="Auto-calculated"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-100"
                   min="0"
                   step="0.01"
@@ -646,7 +667,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 </div>
               </div>
 
-              {/* Discount and Extra Charges */}
+              {/* Discount and Extra Charges with ODC Boys */}
               <div className="bg-orange-50 p-4 rounded-lg border">
                 <h4 className="text-md font-medium text-gray-700 mb-3">Discount & Extra Charges</h4>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -692,6 +713,57 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                     <p className="text-sm text-gray-600">
                       Additional charges will be added to total amount
                     </p>
+                  </div>
+                </div>
+
+                {/* ODC Boys Section - NEW FEATURE */}
+                <div className="mt-4 pt-4 border-t border-orange-200">
+                  <h5 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+                    <span className="mr-2">👥</span>
+                    ODC Boys
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Number of ODC Boys</label>
+                      <input
+                        type="number"
+                        name="odc_boys_count"
+                        value={formData.odc_boys_count}
+                        onChange={handleChange}
+                        placeholder="Enter ODC boys count"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Cost per Boy (₹)</label>
+                      <input
+                        type="number"
+                        name="odc_cost_per_boy"
+                        value={formData.odc_cost_per_boy}
+                        onChange={handleChange}
+                        placeholder="Enter cost per boy"
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Total ODC Boys Cost (₹)</label>
+                      <input
+                        type="text"
+                        value={`₹${displayValues.odcBoysTotal.toLocaleString()}`}
+                        readOnly
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100 text-gray-700 font-medium"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      {(formData.odc_boys_count > 0 && formData.odc_cost_per_boy > 0) && (
+                        <p className="text-xs text-blue-600">
+                          {formData.odc_boys_count} × ₹{parseFloat(formData.odc_cost_per_boy).toLocaleString()} = ₹{displayValues.odcBoysTotal.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -756,10 +828,10 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               </div>
             </div>
 
-            {/* Payment Summary */}
+            {/* Payment Summary - Enhanced with ODC Boys */}
             <div className="mt-6 bg-white p-4 rounded-lg border-2 border-gray-200">
               <h5 className="text-md font-medium text-gray-800 mb-3">Payment Summary</h5>
-              <div className="grid grid-cols-2 md:grid-cols-7 gap-4 text-center">
+              <div className="grid grid-cols-2 md:grid-cols-8 gap-4 text-center">
                 <div>
                   <p className="text-sm text-gray-600">Food Total:</p>
                   <p className="text-lg font-bold text-blue-600">₹{(parseFloat(formData.food_total) || 0).toLocaleString()}</p>
@@ -771,6 +843,10 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 <div>
                   <p className="text-sm text-gray-600">Extra Cost:</p>
                   <p className="text-lg font-bold text-indigo-600">₹{(parseFloat(formData.extra_cost) || 0).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">ODC Boys:</p>
+                  <p className="text-lg font-bold text-cyan-600">₹{displayValues.odcBoysTotal.toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Total Amount:</p>
@@ -808,7 +884,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               name="notes"
               value={formData.notes}
               onChange={handleChange}
-              rows="3"
+              rows={3}
               placeholder="Add any special requirements or notes..."
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -824,14 +900,15 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
               disabled={loading}
             >
               {loading ? 'Saving...' : (booking ? 'Update Booking' : 'Create Booking')}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

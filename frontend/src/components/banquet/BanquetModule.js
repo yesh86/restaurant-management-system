@@ -5,12 +5,42 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import BookingForm from './BookingForm';
 import CalendarView from './CalendarView';
 import BanquetReports from './BanquetReports';
+import api from '../../services/api'; // Add this import
 
 const BanquetModule = () => {
-  const { bookings = [], loading, error } = useApp();
+  const { bookings = [], loading, error, loadBookings } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+
+  // Add the handleSaveBooking function
+  const handleSaveBooking = async (bookingData) => {
+    try {
+      console.log('💾 Saving booking:', bookingData);
+
+      if (editingBooking) {
+        // Update existing booking
+        await api.put(`/bookings/${editingBooking.id}`, bookingData);
+        console.log('✅ Booking updated successfully!');
+      } else {
+        // Create new booking
+        await api.post('/bookings', bookingData);
+        console.log('✅ Booking created successfully!');
+      }
+
+      setShowBookingForm(false);
+      setEditingBooking(null);
+
+      // Refresh the bookings list
+      if (loadBookings) {
+        await loadBookings();
+      }
+
+    } catch (error) {
+      console.error('❌ Error saving booking:', error);
+      alert('Error saving booking: ' + (error.response?.data?.error || error.message));
+    }
+  };
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -314,7 +344,7 @@ const BanquetModule = () => {
       {showBookingForm && (
         <BookingForm
           booking={editingBooking}
-          onSave={() => setShowBookingForm(false)}
+          onSave={handleSaveBooking}
           onCancel={() => setShowBookingForm(false)}
         />
       )}

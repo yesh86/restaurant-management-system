@@ -1,3 +1,4 @@
+// models/Booking.js - Complete model with ODC Boys
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/database');
 
@@ -9,8 +10,8 @@ const Booking = sequelize.define('Booking', {
   },
   booking_number: {
     type: DataTypes.STRING(20),
-    allowNull: false,
-    unique: true
+    allowNull: true, // Let it be generated automatically
+    unique: false    // Avoid unique constraint issues during development
   },
   customer_name: {
     type: DataTypes.STRING(200),
@@ -34,15 +35,14 @@ const Booking = sequelize.define('Booking', {
   },
   other_event_details: {
     type: DataTypes.STRING(500),
-    allowNull: true,
-    comment: 'Details when event_type is "Other"'
+    allowNull: true
   },
   time_slot: {
-    type: DataTypes.STRING(20),
+    type: DataTypes.STRING(50),
     allowNull: false
   },
   hall: {
-    type: DataTypes.STRING(20),
+    type: DataTypes.STRING(50),
     allowNull: false
   },
   pax: {
@@ -56,7 +56,27 @@ const Booking = sequelize.define('Booking', {
   menu_price: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
-    comment: 'Price per person for the selected menu'
+    defaultValue: 0
+  },
+  hall_rent: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
+  },
+  food_total: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
+  },
+  extra_plates: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
+  extra_cost: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
   },
   total_amount: {
     type: DataTypes.DECIMAL(10, 2),
@@ -65,8 +85,24 @@ const Booking = sequelize.define('Booking', {
   discount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
-    defaultValue: 0,
-    comment: 'Discount amount to be deducted from total'
+    defaultValue: 0
+  },
+
+  // ODC Boys Fields
+  odc_boys_count: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
+  },
+  odc_cost_per_boy: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  odc_boys_total: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
   },
 
   // Advance Payment 1
@@ -84,6 +120,10 @@ const Booking = sequelize.define('Booking', {
     allowNull: true,
     defaultValue: 'Cash'
   },
+  advance1_receipt: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
 
   // Advance Payment 2
   advance2_amount: {
@@ -99,6 +139,10 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.STRING(20),
     allowNull: true,
     defaultValue: 'Cash'
+  },
+  advance2_receipt: {
+    type: DataTypes.STRING(100),
+    allowNull: true
   },
 
   // Advance Payment 3
@@ -116,6 +160,10 @@ const Booking = sequelize.define('Booking', {
     allowNull: true,
     defaultValue: 'Cash'
   },
+  advance3_receipt: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
 
   // Final Payment
   final_amount: {
@@ -132,17 +180,19 @@ const Booking = sequelize.define('Booking', {
     allowNull: true,
     defaultValue: 'Cash'
   },
-
-  // Legacy field for compatibility
-  paid_amount: {
-    type: DataTypes.DECIMAL(10, 2),
-    defaultValue: 0,
-    comment: 'Total of all payments - calculated field'
+  final_receipt: {
+    type: DataTypes.STRING(100),
+    allowNull: true
   },
 
+  // Calculated fields
+  paid_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0
+  },
   status: {
     type: DataTypes.STRING(20),
-    defaultValue: 'Pending Payment'
+    defaultValue: 'Not Paid'
   },
   notes: {
     type: DataTypes.TEXT,
@@ -151,27 +201,36 @@ const Booking = sequelize.define('Booking', {
 }, {
   tableName: 'bookings',
   hooks: {
-    // Auto-calculate paid_amount before saving
     beforeSave: (booking) => {
+      // Auto-calculate ODC boys total
+      const odcCount = parseInt(booking.odc_boys_count) || 0;
+      const odcCostPerBoy = parseFloat(booking.odc_cost_per_boy) || 0;
+      booking.odc_boys_total = odcCount * odcCostPerBoy;
+
+      // Auto-calculate paid amount
       const advance1 = parseFloat(booking.advance1_amount) || 0;
       const advance2 = parseFloat(booking.advance2_amount) || 0;
       const advance3 = parseFloat(booking.advance3_amount) || 0;
       const final = parseFloat(booking.final_amount) || 0;
       booking.paid_amount = advance1 + advance2 + advance3 + final;
 
-      // Auto-update status based on payment completion
+      // Auto-update status
       const total = parseFloat(booking.total_amount) || 0;
       const discount = parseFloat(booking.discount) || 0;
       const adjustedTotal = total - discount;
 
       if (booking.paid_amount >= adjustedTotal && adjustedTotal > 0) {
-        if (booking.status === 'Pending Payment' || booking.status === 'Partially Paid') {
-          booking.status = 'Fully Paid';
-        }
+        booking.status = 'Fully Paid';
       } else if (booking.paid_amount > 0) {
-        if (booking.status === 'Pending Payment') {
-          booking.status = 'Partially Paid';
-        }
+        booking.status = 'Partially Paid';
+      } else {
+        booking.status = 'Not Paid';
+      }
+
+      // Generate booking number if not exists
+      if (!booking.booking_number) {
+        const timestamp = Date.now().toString().slice(-6);
+        booking.booking_number = `BK${timestamp}`;
       }
     }
   }

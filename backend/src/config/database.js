@@ -1,35 +1,64 @@
-console.log('Loading database config...');
-console.log('Skipping database initialization for testing');
+// config/database.js - Replace your current file with this
+const { Sequelize } = require('sequelize');
+const path = require('path');
 
-// Mock sequelize object to prevent crashes
-const sequelize = {
-  authenticate: async () => {
-    console.log('✅ Database connection simulated (no real database)');
+console.log('Loading SQLite database config...');
+
+// Create database directory if it doesn't exist
+const dbPath = path.join(__dirname, '..', 'data', 'restaurant_database.sqlite');
+const fs = require('fs');
+const dataDir = path.dirname(dbPath);
+
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+  console.log('📁 Created data directory:', dataDir);
+}
+
+// SQLite configuration
+const sequelize = new Sequelize({
+  dialect: 'sqlite',
+  storage: dbPath,
+  logging: console.log,
+
+  define: {
+    timestamps: true,
+    underscored: false,
+    freezeTableName: true
+  }
+});
+
+const testConnection = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('✅ SQLite database connection established successfully.');
+    console.log('📁 Database file location:', dbPath);
     return true;
-  },
-  sync: async () => {
-    console.log('✅ Database sync simulated');
-    return true;
+  } catch (error) {
+    console.error('❌ Unable to connect to SQLite database:', error);
+    return false;
   }
 };
 
-const testConnection = async () => {
-  console.log('✅ Database connection test passed (simulated)');
-  return true;
+const initializeDatabase = async () => {
+  try {
+    console.log('🔄 Initializing SQLite database...');
+
+    await testConnection();
+
+    // This will create tables when models are loaded
+    await sequelize.sync({ force: false, alter: true });
+
+    console.log('✅ SQLite database initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    throw error;
+  }
 };
 
-// Mock models for testing
-const mockModels = {
-  Category: { count: async () => 0 },
-  Item: { count: async () => 0 },
-  Vendor: { count: async () => 0 },
-  Department: { count: async () => 0 },
-  Booking: { count: async () => 0 },
-  Enquiry: { count: async () => 0 },
-  CashTransaction: { count: async () => 0 },
-  sequelize
+module.exports = {
+  sequelize,
+  testConnection,
+  initializeDatabase,
+  dbPath
 };
-
-console.log('Database config loaded (test mode)');
-
-module.exports = { sequelize, testConnection, mockModels };
