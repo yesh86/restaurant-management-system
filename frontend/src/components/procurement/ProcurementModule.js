@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Package, Building2, ArrowUpDown, FileText, Edit, Trash2, Download, X } from 'lucide-react';
 
 // All 142 predefined items from your Excel file
@@ -90,38 +90,98 @@ const predefinedItems = [
   { id: 85, name: 'Kaju 4p', defaultPrice: 5 }
 ];
 
+// Default departments
+const defaultDepartments = [
+  { id: 1, name: 'South Indian', color: '#10B981', active: true },
+  { id: 2, name: 'Biryani', color: '#3B82F6', active: true },
+  { id: 3, name: 'Chinese', color: '#EF4444', active: true },
+  { id: 4, name: 'Indian', color: '#F59E0B', active: true },
+  { id: 5, name: 'Tandoori', color: '#8B5CF6', active: true },
+  { id: 6, name: 'Pantry', color: '#06B6D4', active: true },
+  { id: 7, name: 'F&B', color: '#EC4899', active: true }
+];
+
 const EnhancedProcurementModule = () => {
+  // localStorage helper functions
+  const loadFromLocalStorage = (key, defaultValue) => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultValue;
+    } catch (error) {
+      console.error(`Error loading ${key} from localStorage:`, error);
+      return defaultValue;
+    }
+  };
+
+  const saveToLocalStorage = (key, value) => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+      console.error(`Error saving ${key} to localStorage:`, error);
+    }
+  };
+
   const [activeTab, setActiveTab] = useState('stock-input');
-
-  // Stock Input State - Updated to date-based
-  const [stockEntries, setStockEntries] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date().toISOString().split('T')[0]);
-  const [customItems, setCustomItems] = useState([]);
-
-  // Stock Distribution State
-  const [distributions, setDistributions] = useState([]);
-
-  // Departments State
-  const [departments, setDepartments] = useState([
-    { id: 1, name: 'South Indian', color: '#10B981', active: true },
-    { id: 2, name: 'Biryani', color: '#3B82F6', active: true },
-    { id: 3, name: 'Chinese', color: '#EF4444', active: true },
-    { id: 4, name: 'Indian', color: '#F59E0B', active: true },
-    { id: 5, name: 'Tandoori', color: '#8B5CF6', active: true },
-    { id: 6, name: 'Pantry', color: '#06B6D4', active: true },
-    { id: 7, name: 'F&B', color: '#EC4899', active: true }
-  ]);
-
-  // Forms State
   const [showStockForm, setShowStockForm] = useState(false);
   const [showDistributionForm, setShowDistributionForm] = useState(false);
   const [showDepartmentForm, setShowDepartmentForm] = useState(false);
-
-  // Report State
   const [reportFromDate, setReportFromDate] = useState(new Date().toISOString().split('T')[0]);
   const [reportToDate, setReportToDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDepartmentForDetails, setSelectedDepartmentForDetails] = useState(null);
   const [showDepartmentDetails, setShowDepartmentDetails] = useState(false);
+
+  // Initialize state from localStorage
+  const [stockEntries, setStockEntriesState] = useState(() =>
+    loadFromLocalStorage('procurement_stockEntries', [])
+  );
+
+  const [distributions, setDistributionsState] = useState(() =>
+    loadFromLocalStorage('procurement_distributions', [])
+  );
+
+  const [departments, setDepartmentsState] = useState(() =>
+    loadFromLocalStorage('procurement_departments', defaultDepartments)
+  );
+
+  const [customItems, setCustomItemsState] = useState(() =>
+    loadFromLocalStorage('procurement_customItems', [])
+  );
+
+  // Wrapper functions that save to localStorage when updating state
+  const setStockEntries = (value) => {
+    const newValue = typeof value === 'function' ? value(stockEntries) : value;
+    setStockEntriesState(newValue);
+    saveToLocalStorage('procurement_stockEntries', newValue);
+  };
+
+  const setDistributions = (value) => {
+    const newValue = typeof value === 'function' ? value(distributions) : value;
+    setDistributionsState(newValue);
+    saveToLocalStorage('procurement_distributions', newValue);
+  };
+
+  const setDepartments = (value) => {
+    const newValue = typeof value === 'function' ? value(departments) : value;
+    setDepartmentsState(newValue);
+    saveToLocalStorage('procurement_departments', newValue);
+  };
+
+  const setCustomItems = (value) => {
+    const newValue = typeof value === 'function' ? value(customItems) : value;
+    setCustomItemsState(newValue);
+    saveToLocalStorage('procurement_customItems', newValue);
+  };
+
+  // Auto-save on unmount (backup save)
+  useEffect(() => {
+    return () => {
+      saveToLocalStorage('procurement_stockEntries', stockEntries);
+      saveToLocalStorage('procurement_distributions', distributions);
+      saveToLocalStorage('procurement_departments', departments);
+      saveToLocalStorage('procurement_customItems', customItems);
+    };
+  }, [stockEntries, distributions, departments, customItems]);
 
   const tabs = [
     { id: 'stock-input', label: 'Stock Input', icon: Package },
@@ -143,11 +203,11 @@ const EnhancedProcurementModule = () => {
     return currentUnits + (previousStock - distributedUnits);
   };
 
-  // Stock Input Tab Component - Updated for date-based system
+  // Stock Input Tab Component
   const StockInputTab = () => {
     const currentDateEntries = stockEntries.filter(entry => entry.date === currentDate);
 
-    const StockEntryForm = ({ onSave, onCancel }) => {
+    const StockEntryForm = ({ onCancel }) => {
       const [formData, setFormData] = useState({
         itemId: '',
         itemName: '',
@@ -219,7 +279,7 @@ const EnhancedProcurementModule = () => {
         };
 
         setStockEntries([...stockEntries, newEntry]);
-        onSave();
+        setShowStockForm(false);
       };
 
       return (
@@ -404,7 +464,12 @@ const EnhancedProcurementModule = () => {
                     <button className="text-blue-600 hover:text-blue-900 mr-2">
                       <Edit size={16} />
                     </button>
-                    <button className="text-red-600 hover:text-red-900">
+                    <button
+                      className="text-red-600 hover:text-red-900"
+                      onClick={() => {
+                        setStockEntries(stockEntries.filter(e => e.id !== entry.id));
+                      }}
+                    >
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -421,7 +486,6 @@ const EnhancedProcurementModule = () => {
 
         {showStockForm && (
           <StockEntryForm
-            onSave={() => setShowStockForm(false)}
             onCancel={() => setShowStockForm(false)}
           />
         )}
@@ -431,7 +495,7 @@ const EnhancedProcurementModule = () => {
 
   // Departments Tab Component
   const DepartmentsTab = () => {
-    const DepartmentForm = ({ onSave, onCancel }) => {
+    const DepartmentForm = ({ onCancel }) => {
       const [formData, setFormData] = useState({
         name: '',
         color: '#3B82F6',
@@ -450,7 +514,7 @@ const EnhancedProcurementModule = () => {
           ...formData
         };
         setDepartments([...departments, newDepartment]);
-        onSave();
+        setShowDepartmentForm(false);
       };
 
       return (
@@ -548,7 +612,6 @@ const EnhancedProcurementModule = () => {
 
         {showDepartmentForm && (
           <DepartmentForm
-            onSave={() => setShowDepartmentForm(false)}
             onCancel={() => setShowDepartmentForm(false)}
           />
         )}
@@ -560,7 +623,7 @@ const EnhancedProcurementModule = () => {
   const DistributionTab = () => {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-    const DistributionForm = ({ onSave, onCancel }) => {
+    const DistributionForm = ({ onCancel }) => {
       const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         itemId: '',
@@ -620,7 +683,7 @@ const EnhancedProcurementModule = () => {
         };
 
         setDistributions([...distributions, newDistribution]);
-        onSave();
+        setShowDistributionForm(false);
       };
 
       return (
@@ -787,7 +850,6 @@ const EnhancedProcurementModule = () => {
 
         {showDistributionForm && (
           <DistributionForm
-            onSave={() => setShowDistributionForm(false)}
             onCancel={() => setShowDistributionForm(false)}
           />
         )}
