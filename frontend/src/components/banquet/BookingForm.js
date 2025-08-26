@@ -53,12 +53,49 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     notes: ''
   });
   const [loading, setLoading] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const timeSlots = ['Breakfast', 'Lunch', 'Dinner'];
   const halls = ['Iris', 'Orchid', 'Both', 'ODC'];
   const eventTypes = ['Wedding', 'Birthday', 'Corporate', 'Anniversary', 'Conference', 'Other'];
   const menuTypes = ['Veg Basic', 'Veg Standard', 'Veg Special', 'Non-Veg Basic', 'Non-Veg Standard', 'Non-Veg Special'];
   const paymentMethods = ['Cash', 'UPI', 'Online Bank Transfer'];
+
+  // Validate form whenever formData changes
+  useEffect(() => {
+    validateForm();
+  }, [formData]);
+
+  // Function to validate all mandatory fields
+  const validateForm = () => {
+    const mandatoryFields = {
+      customer_name: formData.customer_name?.trim(),
+      contact_number: formData.contact_number?.trim(),
+      booking_date: formData.booking_date,
+      event_type: formData.event_type,
+      time_slot: formData.time_slot,
+      hall: formData.hall,
+      pax: formData.pax,
+    };
+
+    // Check if event type is "Other", then other_event_details is also mandatory
+    if (formData.event_type === 'Other') {
+      mandatoryFields.other_event_details = formData.other_event_details?.trim();
+    }
+
+    // Check if all mandatory fields have values
+    const isValid = Object.values(mandatoryFields).every(value => {
+      return value !== '' && value !== null && value !== undefined;
+    });
+
+    // Additional validation for contact number (should be 10 digits)
+    const isPhoneValid = /^[0-9]{10}$/.test(formData.contact_number);
+
+    // Additional validation for PAX (should be a positive number)
+    const isPaxValid = formData.pax && parseInt(formData.pax) > 0;
+
+    setIsFormValid(isValid && isPhoneValid && isPaxValid);
+  };
 
   useEffect(() => {
     if (booking) {
@@ -210,6 +247,13 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Double-check validation before submitting
+    if (!isFormValid) {
+      alert('Please fill all mandatory fields correctly before submitting.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -250,6 +294,14 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
 
   const displayValues = calculateDisplayValues();
 
+  // Helper function to check if a field has an error
+  const hasError = (fieldName) => {
+    if (fieldName === 'contact_number') {
+      return formData.contact_number && !/^[0-9]{10}$/.test(formData.contact_number);
+    }
+    return false;
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -263,6 +315,13 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         </div>
 
         <div className="space-y-6">
+          {/* Validation Warning */}
+          {!isFormValid && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg">
+              <p className="text-sm">Please fill all mandatory fields marked with * to enable the Create Booking button.</p>
+            </div>
+          )}
+
           {/* Customer Information */}
           <div className="bg-blue-50 p-4 rounded-lg">
             <h4 className="text-lg font-medium text-gray-800 mb-3 flex items-center">
@@ -271,26 +330,40 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="customer_name"
                   value={formData.customer_name}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !formData.customer_name ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   required
+                  placeholder="Enter customer name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contact Number <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="tel"
                   name="contact_number"
                   value={formData.contact_number}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    hasError('contact_number') || !formData.contact_number ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   required
+                  placeholder="10-digit phone number"
+                  maxLength="10"
                 />
+                {hasError('contact_number') && (
+                  <p className="text-red-500 text-xs mt-1">Please enter a valid 10-digit phone number</p>
+                )}
               </div>
             </div>
             <div className="mt-4">
@@ -301,6 +374,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 value={formData.email}
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="customer@email.com (optional)"
               />
             </div>
           </div>
@@ -310,18 +384,24 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
             <h4 className="text-lg font-medium text-gray-800 mb-3">Event Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Booking Date *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Booking Date <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="date"
                   name="booking_date"
                   value={formData.booking_date}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !formData.booking_date ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Type *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Type <span className="text-red-500">*</span>
+                </label>
                 <select
                   name="event_type"
                   value={formData.event_type}
@@ -338,14 +418,18 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
 
             {formData.event_type === 'Other' && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Event Details *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Details <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   name="other_event_details"
                   value={formData.other_event_details}
                   onChange={handleChange}
                   placeholder="Please specify the event type"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formData.event_type === 'Other' && !formData.other_event_details ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   required={formData.event_type === 'Other'}
                 />
               </div>
@@ -353,7 +437,9 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Time Slot *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Time Slot <span className="text-red-500">*</span>
+                </label>
                 <select
                   name="time_slot"
                   value={formData.time_slot}
@@ -367,7 +453,9 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hall *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hall <span className="text-red-500">*</span>
+                </label>
                 <select
                   name="hall"
                   value={formData.hall}
@@ -381,15 +469,20 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Number of PAX *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Number of PAX <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="number"
                   name="pax"
                   value={formData.pax}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !formData.pax ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   required
                   min="1"
+                  placeholder="Enter number of guests"
                 />
               </div>
             </div>
@@ -902,8 +995,13 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
             <button
               type="button"
               onClick={handleSubmit}
-              className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
-              disabled={loading}
+              className={`px-6 py-2 rounded-md font-medium ${
+                isFormValid && !loading
+                  ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+              disabled={!isFormValid || loading}
+              title={!isFormValid ? 'Please fill all mandatory fields' : ''}
             >
               {loading ? 'Saving...' : (booking ? 'Update Booking' : 'Create Booking')}
             </button>
