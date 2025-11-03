@@ -15,22 +15,26 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-echo Node.js found:
+echo Node.js found: 
 node -v
-echo npm version:
+echo npm version: 
 npm -v
 echo.
 
 REM Start backend in a new window
 echo Starting Backend Server...
-start "Backend Server" cmd /k "cd backend && npm install && npm start"
+cd backend
+start cmd /k "npm install && npm start"
 
 REM Wait 5 seconds for backend to start
 timeout /t 5 /nobreak >nul
 
 REM Start frontend in a new window
 echo Starting Frontend...
-start "Frontend App" cmd /k "cd frontend && npm install && npm start"
+cd ..\frontend
+start cmd /k "npm install && npm start"
+
+cd ..
 
 echo.
 echo ========================================
@@ -44,7 +48,6 @@ echo Username: admin
 echo Password: V@ibhavam
 echo.
 echo Keep both windows open while using the app.
-echo Close this window when done.
 echo ========================================
 echo.
 
