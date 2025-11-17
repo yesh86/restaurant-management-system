@@ -31,7 +31,7 @@ const Booking = sequelize.define('Booking', {
   },
   event_date: {
     type: DataTypes.DATEONLY,
-    allowNull: false
+    allowNull: true  // Nullable for existing records, but validated in controller
   },
   event_type: {
     type: DataTypes.STRING(100),
