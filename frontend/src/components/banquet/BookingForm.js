@@ -7,6 +7,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
     contact_number: '',
     email: '',
     booking_date: '',
+    event_date: '',
     event_type: 'Wedding',
     other_event_details: '',
     time_slot: 'Dinner',
@@ -72,6 +73,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
       customer_name: formData.customer_name?.trim(),
       contact_number: formData.contact_number?.trim(),
       booking_date: formData.booking_date,
+      event_date: formData.event_date,
       event_type: formData.event_type,
       time_slot: formData.time_slot,
       hall: formData.hall,
@@ -104,6 +106,7 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
         contact_number: booking.contact_number || '',
         email: booking.email || '',
         booking_date: booking.booking_date || '',
+        event_date: booking.event_date || '',
         event_type: booking.event_type || 'Wedding',
         other_event_details: booking.other_event_details || '',
         time_slot: booking.time_slot || 'Dinner',
@@ -398,6 +401,24 @@ const BookingForm = ({ booking, onSave, onCancel }) => {
                   required
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Event Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  name="event_date"
+                  value={formData.event_date}
+                  onChange={handleChange}
+                  className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    !formData.event_date ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Event Type <span className="text-red-500">*</span>

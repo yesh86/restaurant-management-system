@@ -70,6 +70,14 @@ const bookingController = {
 
       const bookingData = req.body;
 
+      // Validate required fields including event_date
+      if (!bookingData.event_date) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: ['Event date is required']
+        });
+      }
+
       // Validate ODC Boys data
       const odcValidationErrors = validateODCBoysData(bookingData);
       if (odcValidationErrors.length > 0) {
@@ -89,6 +97,7 @@ const bookingController = {
 
         // Event details
         booking_date: bookingData.booking_date,
+        event_date: bookingData.event_date,
         event_type: bookingData.event_type || 'Wedding',
         other_event_details: bookingData.other_event_details || '',
         time_slot: bookingData.time_slot || 'Dinner',
@@ -159,6 +168,14 @@ const bookingController = {
 
       const bookingData = req.body;
 
+      // Validate required fields including event_date
+      if (!bookingData.event_date) {
+        return res.status(400).json({
+          error: 'Validation failed',
+          details: ['Event date is required']
+        });
+      }
+
       // Validate ODC Boys data
       const odcValidationErrors = validateODCBoysData(bookingData);
       if (odcValidationErrors.length > 0) {
@@ -174,6 +191,7 @@ const bookingController = {
         contact_number: bookingData.contact_number,
         email: bookingData.email,
         booking_date: bookingData.booking_date,
+        event_date: bookingData.event_date,
         event_type: bookingData.event_type,
         other_event_details: bookingData.other_event_details,
         time_slot: bookingData.time_slot,

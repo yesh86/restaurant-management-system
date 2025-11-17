@@ -253,7 +253,6 @@ const EnhancedProcurementModule = () => {
 
       const handleSubmit = (e) => {
         e.preventDefault();
-        const netUnits = calculateNetUnits(parseInt(formData.itemId), parseFloat(formData.units), formData.date);
 
         let finalFormData = { ...formData };
 
@@ -267,6 +266,9 @@ const EnhancedProcurementModule = () => {
           setCustomItems([...customItems, newCustomItem]);
           finalFormData.itemId = newCustomItemId;
         }
+
+        // Calculate netUnits after determining the final itemId
+        const netUnits = calculateNetUnits(parseInt(finalFormData.itemId), parseFloat(formData.units), formData.date);
 
         const newEntry = {
           id: Date.now(),
