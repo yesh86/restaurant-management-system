@@ -231,7 +231,7 @@ const EnhancedProcurementModule = () => {
           setShowCustomFields(true);
           setFormData({
             ...formData,
-            itemId: 'custom',
+            itemId: 'other',
             itemName: '',
             price: '',
             isCustom: true
