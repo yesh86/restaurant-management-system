@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
-import { Calendar, Plus, Users, DollarSign, BarChart3, FileText } from 'lucide-react';
+import { Calendar, Plus, Users, DollarSign, BarChart3, FileText, X as XCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import BookingForm from './BookingForm';
 import CalendarView from './CalendarView';
 import BanquetReports from './BanquetReports';
-import api from '../../services/api'; // Add this import
+import CancellationModal from './CancellationModal';
+import api from '../../services/api';
+import { bookingService } from '../../services/bookingService';
 
 const BanquetModule = () => {
   const { bookings = [], loading, error, loadBookings } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+  const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [cancellingBooking, setCancellingBooking] = useState(null);
 
   // Add the handleSaveBooking function
   const handleSaveBooking = async (bookingData) => {
@@ -57,6 +61,63 @@ const BanquetModule = () => {
   const handleEditBooking = (booking) => {
     setEditingBooking(booking);
     setShowBookingForm(true);
+  };
+
+  const handleCancelBooking = (booking, e) => {
+    if (e) {
+      e.stopPropagation(); // Prevent row click from triggering edit
+    }
+    setCancellingBooking(booking);
+    setShowCancellationModal(true);
+  };
+
+  const handleConfirmCancellation = async (cancellationData) => {
+    try {
+      console.log('❌ Cancelling booking ID:', cancellingBooking.id);
+      console.log('Cancellation data:', JSON.stringify(cancellationData, null, 2));
+      console.log('Full booking object:', JSON.stringify(cancellingBooking, null, 2));
+
+      // Validate booking ID
+      if (!cancellingBooking || !cancellingBooking.id) {
+        throw new Error('Invalid booking: Missing booking ID');
+      }
+
+      // Call the cancellation service
+      const result = await bookingService.cancel(cancellingBooking.id, cancellationData);
+
+      console.log('✅ Booking cancelled successfully:', JSON.stringify(result, null, 2));
+      alert(`Booking cancelled successfully!\n\nRefund: ₹${result.summary.refund_amount}\nCancellation Fee: ₹${result.summary.cancellation_fee}`);
+
+      setShowCancellationModal(false);
+      setCancellingBooking(null);
+
+      // Refresh the bookings list
+      if (loadBookings) {
+        await loadBookings();
+      }
+    } catch (error) {
+      console.error('❌ Error cancelling booking:', error);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+
+      // Create detailed error message
+      let errorMessage = 'Unknown error occurred';
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+        if (error.response.data.details) {
+          const details = Array.isArray(error.response.data.details)
+            ? error.response.data.details.join('\n')
+            : JSON.stringify(error.response.data.details);
+          errorMessage += '\n\nDetails:\n' + details;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      alert(`Failed to cancel booking:\n\n${errorMessage}`);
+      throw error; // Re-throw to let the modal handle it
+    }
   };
 
   if (loading) return <LoadingSpinner text="Loading bookings..." />;
@@ -137,7 +198,7 @@ const BanquetModule = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Active Bookings</p>
               <p className="text-2xl font-bold text-gray-900">
-                {bookings.filter(b => b.status === 'Confirmed').length}
+                {bookings.filter(b => !b.is_cancelled).length}
               </p>
             </div>
           </div>
@@ -261,37 +322,51 @@ const BanquetModule = () => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PAX</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {bookings.map(booking => (
-              <tr key={booking.id} className="hover:bg-gray-50 cursor-pointer"
+              <tr key={booking.id} className="hover:bg-gray-50"
                   onClick={() => handleEditBooking(booking)}>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap cursor-pointer">
                   <div>
                     <div className="text-sm font-medium text-gray-900">{booking.customer_name}</div>
                     <div className="text-sm text-gray-500">{booking.contact_number}</div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap cursor-pointer">
                   <div className="text-sm text-gray-900">{booking.event_type}</div>
                   <div className="text-sm text-gray-500">{booking.time_slot} • {booking.hall}</div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer">
                   {new Date(booking.booking_date).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{booking.pax}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer">{booking.pax}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer">
                   ₹{(booking.total_amount || 0).toLocaleString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-6 py-4 whitespace-nowrap cursor-pointer">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    booking.status === 'Confirmed'
+                    booking.status === 'Cancelled'
+                      ? 'bg-red-100 text-red-800'
+                      : booking.status === 'Fully Paid'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
                     {booking.status}
                   </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  {!booking.is_cancelled && (
+                    <button
+                      onClick={(e) => handleCancelBooking(booking, e)}
+                      className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                    >
+                      <XCircle size={16} />
+                      Cancel
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -346,6 +421,18 @@ const BanquetModule = () => {
           booking={editingBooking}
           onSave={handleSaveBooking}
           onCancel={() => setShowBookingForm(false)}
+        />
+      )}
+
+      {/* Cancellation Modal */}
+      {showCancellationModal && cancellingBooking && (
+        <CancellationModal
+          booking={cancellingBooking}
+          onClose={() => {
+            setShowCancellationModal(false);
+            setCancellingBooking(null);
+          }}
+          onConfirm={handleConfirmCancellation}
         />
       )}
     </div>

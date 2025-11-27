@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, DollarSign, TrendingUp, BarChart3, FileText } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, BarChart3, FileText, CalendarCheck, Users } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -7,7 +7,11 @@ const BanquetReports = () => {
   const { bookings, loading } = useApp();
   const [selectedMonth, setSelectedMonth] = useState('');
   const [reportData, setReportData] = useState({
-    totalEvents: 0,
+    totalEventsBooked: 0,
+    totalEventsScheduled: 0,
+    cancellationRevenue: 0,
+    totalRefunds: 0,
+    cancelledEventsCount: 0,
     advancePayments: {
       total: 0,
       count: 0,
@@ -39,10 +43,17 @@ const BanquetReports = () => {
     const monthStart = new Date(year, month - 1, 1);
     const monthEnd = new Date(year, month, 0);
 
-    // Get events booked in the selected month
-    const eventsInMonth = bookings.filter(booking => {
+    // Get events BOOKED in the selected month (by booking_date) - EXCLUDE cancelled
+    const eventsBookedInMonth = bookings.filter(booking => {
       const bookingDate = new Date(booking.booking_date);
-      return bookingDate >= monthStart && bookingDate <= monthEnd;
+      return bookingDate >= monthStart && bookingDate <= monthEnd && !booking.is_cancelled;
+    });
+
+    // Get events SCHEDULED in the selected month (by event_date) - EXCLUDE cancelled
+    const eventsScheduledInMonth = bookings.filter(booking => {
+      if (!booking.event_date) return false;
+      const eventDate = new Date(booking.event_date);
+      return eventDate >= monthStart && eventDate <= monthEnd && !booking.is_cancelled;
     });
 
     // Calculate advance payments received in this month
@@ -59,7 +70,22 @@ const BanquetReports = () => {
       events: []
     };
 
+    // Track cancellation data
+    let cancellationRevenue = 0;
+    let totalRefunds = 0;
+    let cancelledEventsCount = 0;
+
     bookings.forEach(booking => {
+      // Check for cancelled events that were scheduled in this month (by event_date)
+      if (booking.is_cancelled && booking.event_date) {
+        const eventDate = new Date(booking.event_date);
+        if (eventDate >= monthStart && eventDate <= monthEnd) {
+          cancelledEventsCount++;
+          cancellationRevenue += parseFloat(booking.cancellation_fee) || 0;
+          totalRefunds += parseFloat(booking.refund_amount) || 0;
+        }
+      }
+
       // Check advance payments
       ['advance1', 'advance2', 'advance3'].forEach(advanceType => {
         const dateField = `${advanceType}_date`;
@@ -99,7 +125,11 @@ const BanquetReports = () => {
     });
 
     setReportData({
-      totalEvents: eventsInMonth.length,
+      totalEventsBooked: eventsBookedInMonth.length,
+      totalEventsScheduled: eventsScheduledInMonth.length,
+      cancellationRevenue,
+      totalRefunds,
+      cancelledEventsCount,
       advancePayments,
       finalPayments
     });
@@ -147,15 +177,39 @@ const BanquetReports = () => {
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Total Events */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            {/* Total Events Booked */}
             <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
               <div className="flex items-center">
                 <Calendar className="h-8 w-8 text-blue-600" />
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Events Booked</p>
-                  <p className="text-2xl font-bold text-blue-600">{reportData.totalEvents}</p>
-                  <p className="text-xs text-gray-500">Events scheduled in {formatMonth(selectedMonth)}</p>
+                  <p className="text-2xl font-bold text-blue-600">{reportData.totalEventsBooked}</p>
+                  <p className="text-xs text-gray-500">Bookings made in {formatMonth(selectedMonth)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Events Scheduled */}
+            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+              <div className="flex items-center">
+                <CalendarCheck className="h-8 w-8 text-orange-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Events Scheduled</p>
+                  <p className="text-2xl font-bold text-orange-600">{reportData.totalEventsScheduled}</p>
+                  <p className="text-xs text-gray-500">Events occurring in {formatMonth(selectedMonth)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Events Cancelled */}
+            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-red-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Events Cancelled</p>
+                  <p className="text-2xl font-bold text-red-600">{reportData.cancelledEventsCount}</p>
+                  <p className="text-xs text-gray-500">Events cancelled in {formatMonth(selectedMonth)}</p>
                 </div>
               </div>
             </div>
@@ -207,7 +261,7 @@ const BanquetReports = () => {
               <FileText className="mr-2" size={20} />
               Monthly Revenue Summary
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
               <div>
                 <p className="text-sm text-gray-600">Total Advance Received</p>
                 <p className="text-xl font-bold text-green-600">
@@ -221,13 +275,28 @@ const BanquetReports = () => {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Received</p>
-                <p className="text-xl font-bold text-blue-600">
-                  ₹{(reportData.advancePayments.total + reportData.finalPayments.total).toLocaleString()}
+                <p className="text-sm text-gray-600">Cancellation Fees</p>
+                <p className="text-xl font-bold text-orange-600">
+                  ₹{reportData.cancellationRevenue.toLocaleString()}
+                </p>
+                {reportData.cancelledEventsCount > 0 && (
+                  <p className="text-xs text-gray-500">{reportData.cancelledEventsCount} cancelled</p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Refunds Paid</p>
+                <p className="text-xl font-bold text-red-600">
+                  -₹{reportData.totalRefunds.toLocaleString()}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Payment Transactions</p>
+                <p className="text-sm text-gray-600">Net Revenue</p>
+                <p className="text-xl font-bold text-blue-600">
+                  ₹{(reportData.advancePayments.total + reportData.finalPayments.total + reportData.cancellationRevenue - reportData.totalRefunds).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Transactions</p>
                 <p className="text-xl font-bold text-gray-800">
                   {reportData.advancePayments.count + reportData.finalPayments.count}
                 </p>

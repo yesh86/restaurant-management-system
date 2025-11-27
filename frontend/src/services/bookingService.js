@@ -29,5 +29,10 @@ export const bookingService = {
   getByDateRange: async (startDate, endDate) => {
     const response = await api.get(`/bookings/date-range?startDate=${startDate}&endDate=${endDate}`);
     return response.data;
+  },
+
+  cancel: async (id, cancellationData) => {
+    const response = await api.post(`/bookings/${id}/cancel`, cancellationData);
+    return response.data;
   }
 };

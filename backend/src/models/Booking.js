@@ -201,6 +201,30 @@ const Booking = sequelize.define('Booking', {
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+
+  // Cancellation fields
+  is_cancelled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  cancellation_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  refund_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
+  },
+  cancellation_fee: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
+  },
+  cancellation_reason: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   tableName: 'bookings',
@@ -218,17 +242,24 @@ const Booking = sequelize.define('Booking', {
       const final = parseFloat(booking.final_amount) || 0;
       booking.paid_amount = advance1 + advance2 + advance3 + final;
 
-      // Auto-update status
-      const total = parseFloat(booking.total_amount) || 0;
-      const discount = parseFloat(booking.discount) || 0;
-      const adjustedTotal = total - discount;
-
-      if (booking.paid_amount >= adjustedTotal && adjustedTotal > 0) {
-        booking.status = 'Fully Paid';
-      } else if (booking.paid_amount > 0) {
-        booking.status = 'Partially Paid';
+      // Auto-calculate cancellation fee if cancelled
+      if (booking.is_cancelled) {
+        const refund = parseFloat(booking.refund_amount) || 0;
+        booking.cancellation_fee = booking.paid_amount - refund;
+        booking.status = 'Cancelled';
       } else {
-        booking.status = 'Not Paid';
+        // Auto-update status for non-cancelled bookings
+        const total = parseFloat(booking.total_amount) || 0;
+        const discount = parseFloat(booking.discount) || 0;
+        const adjustedTotal = total - discount;
+
+        if (booking.paid_amount >= adjustedTotal && adjustedTotal > 0) {
+          booking.status = 'Fully Paid';
+        } else if (booking.paid_amount > 0) {
+          booking.status = 'Partially Paid';
+        } else {
+          booking.status = 'Not Paid';
+        }
       }
 
       // Generate booking number if not exists

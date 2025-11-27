@@ -126,6 +126,7 @@ const bookingController = require('./controllers/bookingController');
 // Real booking routes using actual database
 app.get('/api/bookings', bookingController.getAllBookings);
 app.get('/api/bookings/date-range', bookingController.getBookingsByDateRange);
+app.post('/api/bookings/:id/cancel', bookingController.cancelBooking); // Cancel route MUST be before /:id routes
 app.get('/api/bookings/:id', bookingController.getBookingById);
 app.post('/api/bookings', bookingController.createBooking);
 app.put('/api/bookings/:id', bookingController.updateBooking);

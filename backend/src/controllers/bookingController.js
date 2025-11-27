@@ -296,6 +296,98 @@ const bookingController = {
       console.error('❌ Error fetching bookings by date range:', error);
       res.status(500).json({ error: error.message });
     }
+  },
+
+  // Cancel booking
+  cancelBooking: async (req, res) => {
+    try {
+      const bookingId = req.params.id;
+      const { refund_amount, cancellation_reason } = req.body;
+
+      console.log(`❌ Cancelling booking ID: ${bookingId}`);
+      console.log(`Request body:`, JSON.stringify(req.body, null, 2));
+
+      // Validate booking ID
+      if (!bookingId || isNaN(parseInt(bookingId))) {
+        return res.status(400).json({
+          error: 'Invalid booking ID',
+          details: ['Booking ID must be a valid number']
+        });
+      }
+
+      // Get the booking first
+      const booking = await Booking.findByPk(bookingId);
+      if (!booking) {
+        return res.status(404).json({
+          error: 'Booking not found',
+          details: [`No booking found with ID: ${bookingId}`]
+        });
+      }
+
+      console.log(`Found booking: ${booking.customer_name}, Paid: ₹${booking.paid_amount}`);
+
+      // Check if already cancelled
+      if (booking.is_cancelled) {
+        return res.status(400).json({
+          error: 'Booking is already cancelled',
+          details: [`This booking was cancelled on ${booking.cancellation_date}`]
+        });
+      }
+
+      // Validate refund amount
+      const refundAmount = parseFloat(refund_amount) || 0;
+      const paidAmount = parseFloat(booking.paid_amount) || 0;
+
+      if (refundAmount < 0) {
+        return res.status(400).json({
+          error: 'Invalid refund amount',
+          details: ['Refund amount cannot be negative']
+        });
+      }
+
+      if (refundAmount > paidAmount) {
+        return res.status(400).json({
+          error: 'Invalid refund amount',
+          details: [`Refund amount (₹${refundAmount}) cannot exceed total paid amount (₹${paidAmount})`]
+        });
+      }
+
+      console.log(`💰 Refund amount: ₹${refundAmount}`);
+      console.log(`💰 Paid amount: ₹${paidAmount}`);
+
+      // Update booking with cancellation details
+      const cancellationData = {
+        is_cancelled: true,
+        cancellation_date: new Date().toISOString().split('T')[0],
+        refund_amount: refundAmount,
+        cancellation_reason: cancellation_reason || ''
+      };
+
+      await booking.update(cancellationData);
+
+      // The cancellation_fee will be auto-calculated in the beforeSave hook
+      const updatedBooking = await Booking.findByPk(bookingId);
+
+      console.log(`✅ Booking cancelled successfully`);
+      console.log(`💸 Refund: ₹${updatedBooking.refund_amount}, Fee kept: ₹${updatedBooking.cancellation_fee}`);
+
+      res.json({
+        message: 'Booking cancelled successfully',
+        booking: updatedBooking,
+        summary: {
+          total_paid: parseFloat(updatedBooking.paid_amount) || 0,
+          refund_amount: parseFloat(updatedBooking.refund_amount) || 0,
+          cancellation_fee: parseFloat(updatedBooking.cancellation_fee) || 0
+        }
+      });
+    } catch (error) {
+      console.error('❌ Cancel booking error:', error);
+      console.error('Error stack:', error.stack);
+      res.status(500).json({
+        error: 'Failed to cancel booking',
+        details: [error.message]
+      });
+    }
   }
 };
 
